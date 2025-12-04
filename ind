@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Bulk Gmail Sender with Drive Attachments</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+      background: #f5f5f5;
+    }
+    h2 { margin-top: 0; }
+    .card {
+      background: #ffffff;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    #editor {
+      width: 100%;
+      height: 150px;
+    }
+    #log, #eta, #progress {
+      margin-top: 8px;
+      white-space: pre-line;
+    }
+    #sendBtn {
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      background: #1a73e8;
+      color: white;
+      font-weight: bold;
+    }
+    #sendBtn:disabled {
+      background: #9bb9f0;
+      cursor: not-allowed;
+    }
+    #dropZone {
+      border: 2px dashed #999;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      color: #555;
+      background: #fafafa;
+      margin-top: 10px;
+    }
+    #dropZone.dragover {
+      border-color: #1a73e8;
+      background: #e8f0fe;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    th {
+      background: #f1f3f4;
+    }
+    #failedBtn {
+      margin-top: 10px;
+      display: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid #d93025;
+      background: #ffffff;
+      color: #d93025;
+      cursor: pointer;
+      font-size: 13px;
+    }
+  </style>
+
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- SheetJS for XLSX parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+  <h2>Bulk Gmail Sender with Drive Attachments</h2>
+
+  <!-- 1. Login -->
+  <div class="card">
+    <h3>1. Sign in with Google</h3>
+    <div id="g_id_signin"></div>
+    <div id="loginStatus"></div>
+  </div>
+
+  <!-- 2. Download + Upload XLSX -->
+  <div class="card">
+    <h3>2. Download & Upload Performa (.xlsx)</h3>
+
+    <!-- Download Performa -->
+    <button onclick="downloadPerforma()"
+            style="padding:6px 12px; border:none; background:#28a745; color:white; border-radius:4px; cursor:pointer;">
+      Download Performa (.xlsx)
+    </button>
+
+    <br><br>
+
+    <!-- Upload Input -->
+    <input type="file" id="fileInput" accept=".xlsx" />
+
+    <div id="dropZone">
+      Drag & drop your .xlsx file here<br/>or click “Choose File” above.
+    </div>
+
+    <div id="fileInfo"></div>
+    <div id="tableContainer"></div>
+  </div>
+
+  <!-- 3. Email content -->
+  <div class="card">
+    <h3>3. Email Content</h3>
+
+    <p><b>You can use:</b>  
+      <code>{{Name}}</code> and <code>{{DocumentLink}}</code> in the email.</p>
+
+    <p>
+      <label>Subject:</label><br>
+      <input type="text" id="subject" style="width:100%; box-sizing:border-box;" value="Your Document" />
+    </p>
+
+    <p>
+      <label>Message (HTML allowed):</label><br>
+      <textarea id="editor"><p>Dear {{Name}},</p><p>Your document is attached and also available at:</p><p>{{DocumentLink}}</p><p>Regards,<br/>Student Office</p></textarea>
+    </p>
+  </div>
+
+  <!-- 4. Send & progress -->
+  <div class="card">
+    <h3>4. Send Emails</h3>
+    <button id="sendBtn" onclick="startBulkSend()" disabled>Start Sending Emails</button>
+    <div id="progress"></div>
+    <div id="eta"></div>
+    <div id="log"></div>
+    <button id="failedBtn" onclick="downloadFailed()">Download Failed Rows (CSV)</button>
+  </div>
+
+  <audio id="successSound">
+    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+  </audio>
+
+
+<script>
+/* ---------------------------------------------------------
+   CONFIG
+--------------------------------------------------------- */
+const CLIENT_ID =
+"863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
+
+const SCRIPT_WEBAPP_URL =
+"https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
+
+let accessToken = null;
+let sheetRows = [];
+let failedRows = [];
+let sending = false;
+
+/* ---------------------------------------------------------
+   DOWNLOAD PERFORMA (.xlsx)
+--------------------------------------------------------- */
+function downloadPerforma() {
+  const url =
+"https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Performa.xlsx";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* ---------------------------------------------------------
+   1. Google Identity Login
+--------------------------------------------------------- */
+window.onload = function() {
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: handleCredentialResponse
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById("g_id_signin"),
+    { theme: "outline", size: "large", text: "signin_with" }
+  );
+
+  document.getElementById("loginStatus").innerText =
+    "Please sign in with Google first.";
+
+  setupDragDrop();
+};
+
+function handleCredentialResponse(response) {
+  document.getElementById("loginStatus").innerText =
+    "Signed in. Requesting Gmail + Drive permission...";
+
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope:
+      "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
+    callback: (tokenResponse) => {
+      accessToken = tokenResponse.access_token;
+      document.getElementById("loginStatus").innerText =
+        "Gmail + Drive access granted.";
+      updateSendButtonState();
+    }
+  });
+
+  tokenClient.requestAccessToken();
+}
+
+/* ---------------------------------------------------------
+   2. Drag & Drop + File Input
+--------------------------------------------------------- */
+function setupDragDrop() {
+  const dropZone = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+
+  dropZone.addEventListener("dragover", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add("dragover");
+  });
+
+  dropZone.addEventListener("dragleave", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("dragover");
+  });
+
+  dropZone.addEventListener("drop", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove("dragover");
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleFile(files[0]);
+    }
+  });
+
+  fileInput.addEventListener("change", function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      handleFile(file);
+    }
+  });
+}
+
+function handleFile(file) {
+  if (!file.name.endsWith(".xlsx")) {
+    alert("Please upload a .xlsx Excel file.");
+    return;
+  }
+
+  document.getElementById("fileInfo").innerText = "Loaded file: " + file.name;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    if (json.length < 2) {
+      alert("Sheet empty or missing rows.");
+      return;
+    }
+
+    const header = json[0];
+    const expected = [
+      "Name",
+      "Email",
+      "Batch",
+      "Reg No",
+      "Document Link"
+    ];
+
+    const missing = expected.filter(h => !header.includes(h));
+    if (missing.length > 0) {
+      alert(
+        "The sheet must contain: Name, Email, Batch, Reg No, Document Link.\nMissing: " +
+          missing.join(", ")
+      );
+      return;
+    }
+
+    const idx = {
+      Name: header.indexOf("Name"),
+      Email: header.indexOf("Email"),
+      Batch: header.indexOf("Batch"),
+      RegNo: header.indexOf("Reg No"),
+      DocLink: header.indexOf("Document Link")
+    };
+
+    sheetRows = [];
+    for (let i = 1; i < json.length; i++) {
+      const row = json[i];
+      if (!row || row.length === 0) continue;
+
+      const r = {
+        name: row[idx.Name] || "",
+        email: row[idx.Email] || "",
+        batch: row[idx.Batch] || "",
+        regNo: row[idx.RegNo] || "",
+        docLink: row[idx.DocLink] || ""
+      };
+
+      if (r.email) sheetRows.push(r);
+    }
+
+    renderPreviewTable(header, json.slice(1));
+    updateSendButtonState();
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function renderPreviewTable(header, rows) {
+  const container = document.getElementById("tableContainer");
+  if (rows.length === 0) {
+    container.innerHTML = "<p>No rows found.</p>";
+    return;
+  }
+
+  let html = "<table><thead><tr>";
+  header.forEach(h => (html += "<th>" + (h || "") + "</th>"));
+  html += "</tr></thead><tbody>";
+
+  const max = Math.min(rows.length, 10);
+  for (let i = 0; i < max; i++) {
+    const row = rows[i];
+    html += "<tr>";
+    header.forEach((_, j) => {
+      html += "<td>" + (row[j] || "") + "</td>";
+    });
+    html += "</tr>";
+  }
+
+  if (rows.length > max) {
+    html +=
+      `<tr><td colspan="${header.length}">… +${rows.length -
+        max} more rows …</td></tr>`;
+  }
+
+  html += "</tbody></table>";
+  container.innerHTML = html;
+}
+
+/* ---------------------------------------------------------
+   3. Button enable/disable
+--------------------------------------------------------- */
+function updateSendButtonState() {
+  const subject = document.getElementById("subject").value.trim();
+  const message = document.getElementById("editor").value.trim();
+
+  const ready =
+    accessToken && sheetRows.length > 0 && subject && message && !sending;
+
+  document.getElementById("sendBtn").disabled = !ready;
+}
+
+/* ---------------------------------------------------------
+   4. Bulk sending
+--------------------------------------------------------- */
+async function startBulkSend() {
+  if (!accessToken) {
+    alert("Please sign in first.");
+    return;
+  }
+
+  const subject = document.getElementById("subject").value.trim();
+  const messageTemplate = document.getElementById("editor").value.trim();
+
+  if (!subject || !messageTemplate) {
+    alert("Missing subject or message.");
+    return;
+  }
+
+  sending = true;
+  failedRows = [];
+  updateSendButtonState();
+
+  const total = sheetRows.length;
+  const progressEl = document.getElementById("progress");
+  const logEl = document.getElementById("log");
+  const etaEl = document.getElementById("eta");
+  const failedBtn = document.getElementById("failedBtn");
+
+  progressEl.innerText = "";
+  logEl.innerText = "Starting bulk send…";
+  failedBtn.style.display = "none";
+
+  const start = Date.now();
+
+  for (let i = 0; i < total; i++) {
+    const r = sheetRows[i];
+
+    const personalized = messageTemplate
+      .replace(/{{Name}}/g, r.name)
+      .replace(/{{DocumentLink}}/g, r.docLink);
+
+    progressEl.innerText = `Sending ${i + 1} / ${total}`;
+    logEl.innerText = `Sending to: ${r.email}`;
+
+    const ok = await sendSingleEmail(r, subject, personalized);
+
+    if (!ok) {
+      failedRows.push({ ...r });
+      logEl.innerText = `FAILED: ${r.email}`;
+    } else {
+      logEl.innerText = `Sent to: ${r.email}`;
+    }
+
+    const elapsed = (Date.now() - start) / 1000;
+    const avg = elapsed / (i + 1);
+    const remaining = Math.round(avg * (total - (i + 1)));
+
+    etaEl.innerText = `Estimated time left: ~${remaining}s`;
+
+    await new Promise(r => setTimeout(r, 300));
+  }
+
+  sending = false;
+  updateSendButtonState();
+  etaEl.innerText = "";
+
+  if (failedRows.length === 0) {
+    progressEl.innerText = `All ${total} emails sent successfully!`;
+    document.getElementById("successSound").play();
+    logEl.innerText = "No errors.";
+  } else {
+    progressEl.innerText =
+      `${total - failedRows.length}/${total} sent. ${failedRows.length} failed.`;
+    failedBtn.style.display = "inline-block";
+    logEl.innerText = "Some emails failed.";
+  }
+}
+
+/* ---------------------------------------------------------
+   5. Backend email send (Apps Script)
+--------------------------------------------------------- */
+async function sendSingleEmail(row, subject, htmlBody) {
+  if (!accessToken) return false;
+
+  const match = row.docLink.match(/[-\w]{25,}/);
+  if (!match) return false;
+
+  const fileId = match[0];
+
+  try {
+    const res = await fetch(SCRIPT_WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: row.email,
+        subject: subject,
+        htmlBody: htmlBody,
+        fileId: fileId,
+        accessToken: accessToken
+      })
+    });
+
+    const text = await res.text();
+    const json = JSON.parse(text);
+
+    if (!json.success) return false;
+    return true;
+
+  } catch (err) {
+    return false;
+  }
+}
+
+/* ---------------------------------------------------------
+   6. Failed rows CSV
+--------------------------------------------------------- */
+function downloadFailed() {
+  if (failedRows.length === 0) return;
+
+  const header = ["Name", "Email", "Batch", "Reg No", "Document Link"];
+  let csv = header.join(",") + "\n";
+
+  failedRows.forEach(r => {
+    const row = [
+      r.name,
+      r.email,
+      r.batch,
+      r.regNo,
+      r.docLink
+    ].map(v => `"${String(v).replace(/"/g, '""')}"`);
+
+    csv += row.join(",") + "\n";
+  });
+
+  const blob = new Blob([csv], {
+    type: "text/csv;charset=utf-8;"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "failed_rows.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>

@@ -8,10 +8,15 @@
 <!-- GOOGLE LOGIN SDK -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
+<!-- GOOGLE ADSENSE -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6677493574742233"
+crossorigin="anonymous"></script>
+
 <!-- XLSX PARSER -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
+/* -------------------- YOUR ORIGINAL STYLES -------------------- */
 :root {
   --bg: #ffffff;
   --text: #1a1a1a;
@@ -47,9 +52,7 @@ body {
   margin-inline: auto;
 }
 
-h2, h3 {
-  margin-top: 0;
-}
+h2, h3 { margin-top: 0; }
 
 .card {
   background: var(--card);
@@ -105,10 +108,7 @@ button {
   font-weight: 600;
 }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+button:disabled { opacity: 0.6; cursor: not-allowed; }
 
 textarea, input {
   width: 100%;
@@ -151,12 +151,53 @@ th, td {
   color: white;
   border-radius: 6px;
 }
+
+/* -------------------- ADSENSE SIDE ADS -------------------- */
+.side-ad {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 160px;
+  height: 600px;
+  z-index: 9999;
+}
+
+#left-ad { left: 0; }
+#right-ad { right: 0; }
+
+/* Avoid overlapping main content */
+@media (min-width: 1300px) {
+  body {
+    max-width: 950px;
+    margin-left: 180px;
+    margin-right: 180px;
+  }
+}
 </style>
 </head>
 
 <body>
 
-<!-- THEME TOGGLE -->
+<!-- ================= LEFT AD ================= -->
+<div id="left-ad">
+  <ins class="adsbygoogle"
+       style="display:block; width:160px; height:600px;"
+       data-ad-client="ca-pub-6677493574742233"
+       data-ad-slot="123456001"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- ================= RIGHT AD ================= -->
+<div id="right-ad">
+  <ins class="adsbygoogle"
+       style="display:block; width:160px; height:600px;"
+       data-ad-client="ca-pub-6677493574742233"
+       data-ad-slot="123456002"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- ================= ORIGINAL BODY CONTENT ================= -->
+
 <div class="theme-toggle-wrapper">
   <div class="theme-toggle" onclick="toggleTheme()">
     <div class="knob"></div>
@@ -180,7 +221,6 @@ th, td {
   <br><br>
 
   <input type="file" id="fileInput" accept=".xlsx" />
-
   <div id="dropZone">Drag & drop .xlsx here</div>
   <div id="fileInfo"></div>
   <div id="tableContainer" style="margin-top:12px;"></div>
@@ -204,7 +244,7 @@ th, td {
 </textarea>
 </div>
 
-<!-- INSTRUCTIONS PANEL -->
+<!-- INSTRUCTIONS -->
 <div class="card">
   <h3 style="cursor:pointer;" onclick="toggleInstructions()">📘 How to Use This Mail Sender</h3>
   <div id="instructions" style="display:none; font-size:14px; line-height:1.6;">
@@ -257,6 +297,7 @@ th, td {
   <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
 </audio>
 
+<!-- ================= ORIGINAL SCRIPT (UNCHANGED) ================= -->
 <script>
 /* CONFIG */
 const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";

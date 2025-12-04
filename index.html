@@ -1,516 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bulk Gmail Sender – Document Portal</title>
+<meta charset="UTF-8" />
+<title>Bulk Gmail Sender – OfficeWorkHelp.in</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Google Identity Services -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- GOOGLE LOGIN SDK -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- SheetJS for XLSX parsing -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- XLSX PARSER -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-  <style>
-    :root {
-      /* Light theme */
-      --bg: #eef1f6;
-      --card-bg: #ffffff;
-      --text: #1f2933;
-      --subtle-text: #4b5563;
-      --primary: #1a73e8;
-      --primary-hover: #155fc0;
-      --border: #d4dbe7;
-      --shadow: 0 2px 10px rgba(15, 23, 42, 0.08);
+<style>
+:root {
+  --bg: #ffffff;
+  --text: #1a1a1a;
+  --card: #ffffff;
+  --border: #e6e6e6;
+  --button: #1a73e8;
+  --button-text: #ffffff;
+  --toggle-bg: rgba(255,255,255,0.55);
+  --toggle-blur: blur(6px);
+  --toggle-knob: #1a73e8;
+}
 
-      --danger: #d93025;
-      --success: #16a34a;
+[data-theme="dark"] {
+  --bg: #000000;
+  --text: #e8e8e8;
+  --card: rgba(255,255,255,0.03);
+  --border: rgba(255,255,255,0.14);
+  --button: #1a73e8;
+  --button-text: #ffffff;
+  --toggle-bg: rgba(255,255,255,0.08);
+  --toggle-blur: blur(8px);
+  --toggle-knob: #3ea6ff;
+}
 
-      --toggle-bg: rgba(255, 255, 255, 0.7);
-      --toggle-border: rgba(148, 163, 184, 0.7);
-      --toggle-knob: #ffffff;
-      --toggle-icon-sun: #f59e0b;
-      --toggle-icon-moon: #6b7280;
-    }
+body {
+  margin: 0;
+  padding: 20px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+  max-width: 950px;
+  margin-inline: auto;
+}
 
-    body.theme-dark {
-      /* Dark theme (AMOLED style, but softened a bit) */
-      --bg: #020617;
-      --card-bg: #020617;
-      --text: #e5e7eb;
-      --subtle-text: #9ca3af;
-      --primary: #3b82f6;
-      --primary-hover: #2563eb;
-      --border: #1f2937;
-      --shadow: 0 18px 45px rgba(15, 23, 42, 0.9);
+h2, h3 {
+  margin-top: 0;
+}
 
-      --danger: #f97373;
-      --success: #4ade80;
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 18px 22px;
+  border-radius: 12px;
+  margin-bottom: 22px;
+  backdrop-filter: blur(6px);
+  transition: background 0.3s ease, border 0.3s ease;
+}
 
-      --toggle-bg: rgba(15, 23, 42, 0.7);
-      --toggle-border: rgba(55, 65, 81, 0.9);
-      --toggle-knob: #e5e7eb;
-      --toggle-icon-sun: #facc15;
-      --toggle-icon-moon: #e5e7eb;
-    }
+/* Toggle Switch */
+.theme-toggle-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
 
-    * {
-      box-sizing: border-box;
-    }
+.theme-toggle {
+  width: 60px;
+  height: 28px;
+  background: var(--toggle-bg);
+  border-radius: 40px;
+  backdrop-filter: var(--toggle-blur);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
 
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: radial-gradient(circle at top left, rgba(59,130,246,0.18), transparent 45%),
-                  radial-gradient(circle at bottom right, rgba(16,185,129,0.12), transparent 50%),
-                  var(--bg);
-      color: var(--text);
-      transition: background 0.3s ease, color 0.3s ease;
-    }
+.theme-toggle .knob {
+  width: 24px;
+  height: 24px;
+  background: var(--toggle-knob);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s ease;
+}
 
-    /* Top bar */
-    .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      backdrop-filter: blur(14px);
-      background: linear-gradient(to right, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.75));
-      color: #e5e7eb;
-      padding: 10px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.6);
-    }
+[data-theme="dark"] .theme-toggle .knob {
+  transform: translateX(32px);
+}
 
-    .navbar-title {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-    }
+/* General UI */
+button {
+  background: var(--button);
+  color: var(--button-text);
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
 
-    /* Theme toggle pill (glassmorphism subtle) */
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      padding: 4px;
-      border-radius: 999px;
-      border: 1px solid var(--toggle-border);
-      background: var(--toggle-bg);
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
-      cursor: pointer;
-      gap: 6px;
-      min-width: 90px;
-      justify-content: space-between;
-      transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
-    }
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-    .theme-toggle:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);
-    }
+textarea, input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
+}
 
-    .theme-toggle-icon {
-      font-size: 14px;
-      width: 16px;
-      text-align: center;
-    }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
 
-    .theme-toggle-icon.sun {
-      color: var(--toggle-icon-sun);
-    }
+th, td {
+  border: 1px solid var(--border);
+  padding: 6px;
+}
 
-    .theme-toggle-icon.moon {
-      color: var(--toggle-icon-moon);
-    }
+#dropZone {
+  border: 2px dashed var(--border);
+  padding: 20px;
+  text-align: center;
+  border-radius: 10px;
+  margin-top: 12px;
+}
 
-    .theme-toggle-track {
-      position: relative;
-      flex: 1;
-      height: 20px;
-      border-radius: 999px;
-      background: linear-gradient(90deg, rgba(148,163,184,0.25), rgba(148,163,184,0.08));
-      overflow: hidden;
-    }
+#dropZone.dragover {
+  background: rgba(26,115,232,0.12);
+  border-color: #1a73e8;
+}
 
-    .theme-toggle-knob {
-      position: absolute;
-      top: 2px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      background: var(--toggle-knob);
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.45);
-      transition: left 0.22s ease, background 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    body.theme-dark .theme-toggle-knob {
-      left: calc(100% - 19px);
-    }
-
-    /* Main layout */
-    .container {
-      max-width: 960px;
-      margin: 24px auto;
-      padding: 0 16px 40px;
-    }
-
-    .page-title {
-      font-size: 22px;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-
-    .page-subtitle {
-      font-size: 14px;
-      color: var(--subtle-text);
-      margin-bottom: 18px;
-    }
-
-    .card {
-      background: rgba(15, 23, 42, 0.03);
-      border-radius: 18px;
-      padding: 18px 18px 16px;
-      margin-bottom: 18px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
-      transition: background 0.3s ease, border-color 0.3s ease, transform 0.15s ease, box-shadow 0.3s ease;
-    }
-
-    body.theme-dark .card {
-      background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 55%),
-                  rgba(15,23,42,0.92);
-    }
-
-    .card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.18);
-    }
-
-    .card h3 {
-      margin: 0 0 8px;
-      font-size: 17px;
-      font-weight: 600;
-      color: var(--primary);
-    }
-
-    .card small {
-      color: var(--subtle-text);
-      font-size: 12px;
-    }
-
-    label {
-      font-size: 13px;
-      font-weight: 500;
-      display: block;
-      margin-top: 10px;
-      margin-bottom: 4px;
-    }
-
-    input, textarea {
-      width: 100%;
-      padding: 9px 10px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      margin-top: 2px;
-      font-size: 14px;
-      background: rgba(255,255,255,0.9);
-      color: var(--text);
-      outline: none;
-      transition: border 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
-    }
-
-    body.theme-dark input,
-    body.theme-dark textarea {
-      background: rgba(15,23,42,0.9);
-      color: var(--text);
-    }
-
-    input:focus,
-    textarea:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
-    }
-
-    textarea {
-      min-height: 150px;
-      resize: vertical;
-    }
-
-    button {
-      border: none;
-      border-radius: 999px;
-      padding: 9px 16px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--primary);
-      color: white;
-      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
-      transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
-    }
-
-    button:hover:not(:disabled) {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
-      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.45);
-    }
-
-    button:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-      box-shadow: none;
-    }
-
-    button.secondary {
-      background: transparent;
-      color: var(--primary);
-      border: 1px solid rgba(148,163,184,0.7);
-      box-shadow: none;
-    }
-
-    button.secondary:hover:not(:disabled) {
-      background: rgba(37, 99, 235, 0.06);
-      box-shadow: none;
-    }
-
-    #downloadBtn {
-      margin-bottom: 8px;
-    }
-
-    #dropZone {
-      border: 1.3px dashed rgba(148,163,184,0.8);
-      border-radius: 14px;
-      padding: 20px;
-      margin-top: 10px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--subtle-text);
-      background: rgba(255, 255, 255, 0.7);
-      transition: border 0.2s ease, background 0.2s ease, color 0.2s ease;
-    }
-
-    body.theme-dark #dropZone {
-      background: rgba(15, 23, 42, 0.9);
-    }
-
-    #dropZone.dragover {
-      border-color: var(--primary);
-      background: rgba(37, 99, 235, 0.06);
-      color: var(--primary);
-    }
-
-    #fileInfo {
-      margin-top: 6px;
-      font-size: 13px;
-      color: var(--subtle-text);
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      font-size: 12px;
-    }
-
-    th, td {
-      border: 1px solid rgba(148,163,184,0.5);
-      padding: 6px 6px;
-      text-align: left;
-    }
-
-    th {
-      background: rgba(148,163,184,0.2);
-      font-weight: 600;
-    }
-
-    body.theme-dark th {
-      background: rgba(31,41,55,0.9);
-    }
-
-    #progress, #eta, #log {
-      margin-top: 8px;
-      font-size: 13px;
-      color: var(--subtle-text);
-      white-space: pre-wrap;
-    }
-
-    #progress {
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    #failedBtn {
-      margin-top: 8px;
-      display: none;
-      border-color: var(--danger);
-      color: var(--danger);
-      box-shadow: none;
-    }
-
-    @media (max-width: 640px) {
-      .navbar {
-        padding: 10px 12px;
-      }
-
-      .navbar-title {
-        font-size: 15px;
-      }
-
-      .container {
-        margin-top: 16px;
-      }
-
-      .card {
-        border-radius: 16px;
-      }
-    }
-  </style>
+#failedBtn {
+  display: none;
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: #d93025;
+  color: white;
+  border-radius: 6px;
+}
+</style>
 </head>
 
 <body>
 
-  <!-- Top bar -->
-  <div class="navbar">
-    <div class="navbar-title">
-      Bulk Gmail Sender – Document Portal
-    </div>
-    <div class="theme-toggle" id="themeToggle">
-      <span class="theme-toggle-icon sun">☀</span>
-      <div class="theme-toggle-track">
-        <div class="theme-toggle-knob"></div>
-      </div>
-      <span class="theme-toggle-icon moon">☾</span>
-    </div>
+<!-- THEME TOGGLE -->
+<div class="theme-toggle-wrapper">
+  <div class="theme-toggle" onclick="toggleTheme()">
+    <div class="knob"></div>
   </div>
+</div>
 
-  <div class="container">
-    <div class="page-title">Automated Document Emailer</div>
-    <div class="page-subtitle">
-      Sign in, download the Performa, upload the filled sheet, write your email, and send documents in bulk with Drive attachments.
-    </div>
+<h2>Bulk Gmail Sender with Drive Attachments</h2>
 
-    <!-- 1) Login -->
-    <div class="card">
-      <h3>1. Sign in with Google</h3>
-      <small>Use the account you want to send emails from.</small>
-      <div id="g_id_signin" style="margin-top:10px;"></div>
-      <div id="loginStatus" style="margin-top:8px; font-size:13px; font-weight:500;"></div>
-    </div>
+<!-- LOGIN -->
+<div class="card">
+  <h3>1. Sign in with Google</h3>
+  <div id="g_id_signin"></div>
+  <div id="loginStatus" style="margin-top:8px;"></div>
+</div>
 
-    <!-- 2) Download + Upload -->
-    <div class="card">
-      <h3>2. Download & Upload Performa (.xlsx)</h3>
-      <small>The sheet must contain columns: <b>Name, Email, Batch, Reg No, Document Link</b>.</small>
+<!-- DOWNLOAD / UPLOAD -->
+<div class="card">
+  <h3>2. Download & Upload Performa</h3>
 
-      <div style="margin-top:10px;">
-        <button id="downloadBtn" type="button" class="secondary" onclick="downloadPerforma()">
-          ⬇ Download Performa (.xlsx)
-        </button>
-      </div>
+  <button onclick="downloadPerforma()">Download Performa (.xlsx)</button>
+  <br><br>
 
-      <label for="fileInput">Upload filled Performa:</label>
-      <input type="file" id="fileInput" accept=".xlsx" />
+  <input type="file" id="fileInput" accept=".xlsx" />
 
-      <div id="dropZone">
-        Drag & drop your .xlsx file here<br>or use the file selector above.
-      </div>
+  <div id="dropZone">Drag & drop .xlsx here</div>
+  <div id="fileInfo"></div>
+  <div id="tableContainer" style="margin-top:12px;"></div>
+</div>
 
-      <div id="fileInfo"></div>
-      <div id="tableContainer"></div>
-    </div>
+<!-- EMAIL CONTENT -->
+<div class="card">
+  <h3>3. Email Content</h3>
 
-    <!-- 3) Email -->
-    <div class="card">
-      <h3>3. Compose Email</h3>
-      <small>You can use placeholders: <code>{{Name}}</code> and <code>{{DocumentLink}}</code> in the message.</small>
+  <label>Subject:</label>
+  <input id="subject" value="Your Document" />
 
-      <label>Subject</label>
-      <input type="text" id="subject" placeholder="Your document" />
+  <br><br>
 
-      <label>Message (HTML allowed)</label>
-      <textarea id="editor"><p>Dear {{Name}},</p><p>Your document is attached to this email. You can also access it at the following link:</p><p>{{DocumentLink}}</p><p>Regards,<br/>Student Office</p></textarea>
-    </div>
+  <label>Message (HTML allowed):</label>
+  <textarea id="editor" rows="6">
+<p>Dear {{Name}},</p>
+<p>Your document is attached below.</p>
+<p>Download link: {{DocumentLink}}</p>
+<p>Regards,<br/>Office</p>
+</textarea>
+</div>
 
-    <!-- 4) Send -->
-    <div class="card">
-      <h3>4. Send Emails</h3>
-      <small>Click start to send one email (with attachment) per row.</small>
+<!-- INSTRUCTIONS PANEL -->
+<div class="card">
+  <h3 style="cursor:pointer;" onclick="toggleInstructions()">📘 How to Use This Mail Sender</h3>
+  <div id="instructions" style="display:none; font-size:14px; line-height:1.6;">
 
-      <div style="margin-top:10px;">
-        <button id="sendBtn" type="button" onclick="startBulkSend()" disabled>
-          ▶ Start Sending Emails
-        </button>
-      </div>
+    <h4>Step 1 — Google Login</h4>
+    <p>Click "Sign in with Google" and allow Gmail + Drive permissions.</p>
 
-      <div id="progress"></div>
-      <div id="eta"></div>
-      <div id="log"></div>
+    <h4>Step 2 — Download Performa</h4>
+    <p>Fill these fields:</p>
+    <ul>
+      <li>Name</li>
+      <li>Email</li>
+      <li>Batch</li>
+      <li>Reg No</li>
+      <li>Document Link</li>
+    </ul>
 
-      <button id="failedBtn" type="button" onclick="downloadFailed()">
-        ⚠ Download Failed Rows (CSV)
-      </button>
-    </div>
+    <h4>Step 3 — Upload Excel File</h4>
+    <p>Drop or select the .xlsx file. Preview will appear.</p>
 
-    <audio id="successSound">
-      <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
-    </audio>
+    <h4>Step 4 — Write Email</h4>
+    <p>You may use:</p>
+    <ul>
+      <li><code>{{Name}}</code></li>
+      <li><code>{{DocumentLink}}</code></li>
+    </ul>
+
+    <h4>Step 5 — Start Sending</h4>
+    <p>The system shows progress, ETA, and log updates.</p>
+
+    <h4>Step 6 — Failed Logs</h4>
+    <p>If any email fails, download <b>failed_rows.csv</b>.</p>
+
   </div>
+</div>
+
+<!-- SEND -->
+<div class="card">
+  <h3>4. Send Emails</h3>
+  <button id="sendBtn" disabled onclick="startBulkSend()">Start Sending Emails</button>
+
+  <div id="progress" style="margin-top:10px;"></div>
+  <div id="eta"></div>
+  <div id="log"></div>
+
+  <button id="failedBtn" onclick="downloadFailed()">Download Failed Rows (CSV)</button>
+</div>
+
+<audio id="successSound">
+  <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+</audio>
 
 <script>
-/* ================================
-   CONFIG
-================================ */
+/* CONFIG */
 const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
-const SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
+
+const SCRIPT_WEBAPP_URL =
+"https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
 
 let accessToken = null;
 let sheetRows = [];
 let failedRows = [];
 let sending = false;
 
-/* ================================
-   THEME TOGGLE
-================================ */
-(function initTheme() {
-  const saved = localStorage.getItem("bulkTheme");
-  if (saved === "dark") {
-    document.body.classList.add("theme-dark");
-  }
-})();
+/* THEME */
+function toggleTheme() {
+  const current = document.body.getAttribute("data-theme");
+  document.body.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+}
 
-document.getElementById("themeToggle").addEventListener("click", () => {
-  document.body.classList.toggle("theme-dark");
-  const isDark = document.body.classList.contains("theme-dark");
-  localStorage.setItem("bulkTheme", isDark ? "dark" : "light");
-});
+/* INSTRUCTIONS */
+function toggleInstructions() {
+  const x = document.getElementById("instructions");
+  x.style.display = x.style.display === "none" ? "block" : "none";
+}
 
-/* ================================
-   DOWNLOAD PERFORMA
-================================ */
+/* DOWNLOAD PERFORMA */
 function downloadPerforma() {
-  const url = "https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
+  const url =
+"https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
+
   const a = document.createElement("a");
   a.href = url;
   a.download = "Performa.xlsx";
-  document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
 }
 
-/* ================================
-   LOGIN WITH GOOGLE
-================================ */
+/* LOGIN */
 window.onload = function() {
   google.accounts.id.initialize({
     client_id: CLIENT_ID,
-    callback: handleCredentialResponse
+    callback: handleLogin
   });
 
   google.accounts.id.renderButton(
@@ -521,240 +307,178 @@ window.onload = function() {
   setupDragDrop();
 };
 
-function handleCredentialResponse() {
-  const status = document.getElementById("loginStatus");
-  status.innerText = "Requesting Gmail + Drive permissions…";
+function handleLogin(res) {
+  document.getElementById("loginStatus").innerText =
+    "Signed in. Requesting permissions…";
 
-  const client = google.accounts.oauth2.initTokenClient({
+  const tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
-    callback: (res) => {
-      accessToken = res.access_token;
-      status.innerText = "Login successful. Gmail + Drive access granted.";
-      updateSendButtonState();
+    callback: (t) => {
+      accessToken = t.access_token;
+      document.getElementById("loginStatus").innerText = "Login successful.";
+      updateSendButton();
     }
   });
 
-  client.requestAccessToken();
+  tokenClient.requestAccessToken();
 }
 
-/* ================================
-   FILE UPLOAD & PARSING
-================================ */
+/* DRAG & DROP */
 function setupDragDrop() {
-  const dropZone = document.getElementById("dropZone");
-  const fileInput = document.getElementById("fileInput");
-
-  dropZone.addEventListener("dragover", e => {
+  const dz = document.getElementById("dropZone");
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dragover"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+  dz.addEventListener("drop", e => {
     e.preventDefault();
-    dropZone.classList.add("dragover");
+    dz.classList.remove("dragover");
+    handleFile(e.dataTransfer.files[0]);
   });
 
-  dropZone.addEventListener("dragleave", e => {
-    dropZone.classList.remove("dragover");
-  });
-
-  dropZone.addEventListener("drop", e => {
-    e.preventDefault();
-    dropZone.classList.remove("dragover");
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  });
-
-  fileInput.addEventListener("change", e => {
-    const file = e.target.files[0];
-    if (file) handleFile(file);
+  document.getElementById("fileInput").addEventListener("change", e => {
+    handleFile(e.target.files[0]);
   });
 }
 
 function handleFile(file) {
-  if (!file.name.endsWith(".xlsx")) {
-    alert("Please upload a .xlsx file.");
-    return;
-  }
+  if (!file || !file.name.endsWith(".xlsx")) return;
 
-  document.getElementById("fileInfo").innerText = "Loaded file: " + file.name;
+  document.getElementById("fileInfo").innerText = "Loaded: " + file.name;
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = e => {
     const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-    if (!data.length) {
-      alert("Sheet is empty.");
-      return;
-    }
+    if (json.length < 2) return;
 
-    const header = data[0];
+    const header = json[0];
     const required = ["Name", "Email", "Batch", "Reg No", "Document Link"];
-    const missing = required.filter(h => !header.includes(h));
-    if (missing.length) {
-      alert("Missing columns: " + missing.join(", "));
-      return;
+
+    for (let h of required) {
+      if (!header.includes(h)) {
+        alert("Missing column: " + h);
+        return;
+      }
     }
 
     const idx = {
       name: header.indexOf("Name"),
       email: header.indexOf("Email"),
       batch: header.indexOf("Batch"),
-      reg: header.indexOf("Reg No"),
-      link: header.indexOf("Document Link")
+      regNo: header.indexOf("Reg No"),
+      doc: header.indexOf("Document Link")
     };
 
     sheetRows = [];
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      if (!row || !row.length) continue;
+    for (let i = 1; i < json.length; i++) {
+      const row = json[i];
+      if (!row || !row[idx.email]) continue;
 
-      const record = {
+      sheetRows.push({
         name: row[idx.name] || "",
         email: row[idx.email] || "",
         batch: row[idx.batch] || "",
-        regNo: row[idx.reg] || "",
-        docLink: row[idx.link] || ""
-      };
-      if (record.email) sheetRows.push(record);
+        regNo: row[idx.regNo] || "",
+        docLink: row[idx.doc] || ""
+      });
     }
 
-    renderPreviewTable(header, data.slice(1));
-    updateSendButtonState();
+    renderTable(header, json.slice(1));
+    updateSendButton();
   };
 
   reader.readAsArrayBuffer(file);
 }
 
-function renderPreviewTable(header, rows) {
-  const container = document.getElementById("tableContainer");
-  if (!rows.length) {
-    container.innerHTML = "<p style='font-size:13px;'>No data rows found.</p>";
-    return;
-  }
+function renderTable(header, rows) {
+  if (!rows.length) return;
 
   let html = "<table><thead><tr>";
-  header.forEach(h => { html += `<th>${h}</th>`; });
+  header.forEach(h => html += "<th>" + h + "</th>");
   html += "</tr></thead><tbody>";
 
-  const max = Math.min(rows.length, 10);
-  for (let i = 0; i < max; i++) {
-    const row = rows[i];
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
     html += "<tr>";
-    header.forEach((_, j) => {
-      html += `<td>${row[j] || ""}</td>`;
-    });
+    header.forEach((_, j) => html += "<td>" + (rows[i][j] || "") + "</td>");
     html += "</tr>";
   }
 
-  if (rows.length > max) {
-    html += `<tr><td colspan="${header.length}">… +${rows.length - max} more rows …</td></tr>`;
-  }
-
   html += "</tbody></table>";
-  container.innerHTML = html;
+  document.getElementById("tableContainer").innerHTML = html;
 }
 
-/* ================================
-   BUTTON ENABLE / DISABLE
-================================ */
-function updateSendButtonState() {
-  const subject = document.getElementById("subject").value.trim();
-  const message = document.getElementById("editor").value.trim();
-  const ready = !!accessToken && sheetRows.length > 0 && subject && message && !sending;
-  document.getElementById("sendBtn").disabled = !ready;
+/* SEND BUTTON */
+function updateSendButton() {
+  const ok = accessToken &&
+             sheetRows.length > 0 &&
+             document.getElementById("subject").value.trim() &&
+             document.getElementById("editor").value.trim() &&
+             !sending;
+
+  document.getElementById("sendBtn").disabled = !ok;
 }
 
-document.addEventListener("input", e => {
-  if (["subject", "editor"].includes(e.target.id)) {
-    updateSendButtonState();
-  }
-});
-
-/* ================================
-   BULK SEND
-================================ */
+/* BULK SEND */
 async function startBulkSend() {
-  if (!accessToken) {
-    alert("Please sign in first.");
-    return;
-  }
-  if (!sheetRows.length) {
-    alert("Please upload a valid Performa file.");
-    return;
-  }
+  sending = true;
+  updateSendButton();
 
   const subject = document.getElementById("subject").value.trim();
-  const template = document.getElementById("editor").value.trim();
-  if (!subject || !template) {
-    alert("Please fill in subject and message.");
-    return;
-  }
-
-  sending = true;
-  failedRows = [];
-  updateSendButtonState();
+  const msg = document.getElementById("editor").value.trim();
 
   const total = sheetRows.length;
-  const progressEl = document.getElementById("progress");
-  const logEl = document.getElementById("log");
-  const etaEl = document.getElementById("eta");
-  const failedBtn = document.getElementById("failedBtn");
+  failedRows = [];
 
-  progressEl.innerText = "";
-  logEl.innerText = "Starting bulk send…";
-  etaEl.innerText = "";
-  failedBtn.style.display = "none";
+  document.getElementById("progress").innerText = "";
+  document.getElementById("log").innerText = "Starting…";
+  document.getElementById("failedBtn").style.display = "none";
 
-  const startTime = Date.now();
+  const start = Date.now();
 
   for (let i = 0; i < total; i++) {
     const r = sheetRows[i];
-    const body = template
-      .replace(/{{Name}}/g, r.name || "")
-      .replace(/{{DocumentLink}}/g, r.docLink || "");
 
-    progressEl.innerText = `Sending ${i + 1} / ${total}`;
-    logEl.innerText = `Sending to: ${r.email}`;
+    const htmlBody = msg
+      .replace(/{{Name}}/g, r.name)
+      .replace(/{{DocumentLink}}/g, r.docLink);
 
-    const ok = await sendSingleEmail(r, subject, body);
-    if (!ok) {
-      failedRows.push(r);
-      logEl.innerText = `FAILED: ${r.email}`;
-    } else {
-      logEl.innerText = `Sent to: ${r.email}`;
-    }
+    document.getElementById("progress").innerText = `Sending ${i+1}/${total}`;
+    document.getElementById("log").innerText = r.email;
 
-    const elapsed = (Date.now() - startTime) / 1000;
+    const ok = await sendOne(r, subject, htmlBody);
+    if (!ok) failedRows.push(r);
+
+    const elapsed = (Date.now() - start) / 1000;
     const avg = elapsed / (i + 1);
     const remaining = Math.round(avg * (total - (i + 1)));
-    etaEl.innerText = `Estimated time left: ~${remaining}s`;
 
-    await new Promise(res => setTimeout(res, 350));
+    document.getElementById("eta").innerText =
+      `Estimated time left: ${remaining}s`;
+
+    await new Promise(res => setTimeout(res, 300));
   }
 
   sending = false;
-  updateSendButtonState();
-  etaEl.innerText = "";
+  updateSendButton();
 
   if (!failedRows.length) {
-    progressEl.innerText = `All ${total} emails sent successfully.`;
+    document.getElementById("progress").innerText = "All emails sent!";
+    document.getElementById("log").innerText = "No errors.";
     document.getElementById("successSound").play();
-    logEl.innerText = "Completed with no errors.";
   } else {
-    progressEl.innerText = `${total - failedRows.length}/${total} sent. ${failedRows.length} failed.`;
-    failedBtn.style.display = "inline-flex";
-    logEl.innerText = "Some emails failed. Download failed rows and retry later.";
+    document.getElementById("progress").innerText =
+      `${total - failedRows.length}/${total} sent. ${failedRows.length} failed.`;
+    document.getElementById("failedBtn").style.display = "inline-block";
   }
+
+  document.getElementById("eta").innerText = "";
 }
 
-/* ================================
-   SEND SINGLE EMAIL VIA APPS SCRIPT BACKEND
-================================ */
-async function sendSingleEmail(row, subject, htmlBody) {
-  if (!accessToken) return false;
-  if (!row.docLink) return false;
-
-  const match = row.docLink.match(/[-\w]{25,}/);
+/* SEND ONE EMAIL */
+async function sendOne(r, subject, htmlBody) {
+  const match = r.docLink.match(/[-\w]{25,}/);
   if (!match) return false;
 
   const fileId = match[0];
@@ -764,7 +488,7 @@ async function sendSingleEmail(row, subject, htmlBody) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: row.email,
+        to: r.email,
         subject,
         htmlBody,
         fileId,
@@ -772,40 +496,31 @@ async function sendSingleEmail(row, subject, htmlBody) {
       })
     });
 
-    const json = await res.json();
-    return !!json.success;
-  } catch (e) {
-    console.error("Error sending to", row.email, e);
+    const txt = await res.text();
+    const json = JSON.parse(txt);
+    return json.success;
+  } catch {
     return false;
   }
 }
 
-/* ================================
-   FAILED ROWS CSV
-================================ */
+/* FAILED CSV */
 function downloadFailed() {
   if (!failedRows.length) return;
 
   let csv = "Name,Email,Batch,Reg No,Document Link\n";
+
   failedRows.forEach(r => {
-    const row = [
-      r.name || "",
-      r.email || "",
-      r.batch || "",
-      r.regNo || "",
-      r.docLink || ""
-    ].map(v => `"${String(v).replace(/"/g, '""')}"`);
-    csv += row.join(",") + "\n";
+    csv += `"${r.name}","${r.email}","${r.batch}","${r.regNo}","${r.docLink}"\n`;
   });
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
   a.download = "failed_rows.csv";
-  document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 </script>

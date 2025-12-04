@@ -16,6 +16,7 @@ crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
+/* ---- APP THEME ---- */
 :root {
   --bg: #ffffff;
   --text: #1a1a1a;
@@ -23,21 +24,15 @@ crossorigin="anonymous"></script>
   --border: #e6e6e6;
   --button: #1a73e8;
   --button-text: #ffffff;
-  --toggle-bg: rgba(255,255,255,0.55);
-  --toggle-blur: blur(6px);
-  --toggle-knob: #1a73e8;
 }
 
 [data-theme="dark"] {
   --bg: #000000;
   --text: #e8e8e8;
-  --card: rgba(255,255,255,0.03);
-  --border: rgba(255,255,255,0.14);
+  --card: rgba(255,255,255,0.05);
+  --border: rgba(255,255,255,0.18);
   --button: #1a73e8;
   --button-text: #ffffff;
-  --toggle-bg: rgba(255,255,255,0.08);
-  --toggle-blur: blur(8px);
-  --toggle-knob: #3ea6ff;
 }
 
 body {
@@ -46,12 +41,20 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "Segoe UI", Arial, sans-serif;
-  transition: background 0.3s ease, color 0.3s ease;
   max-width: 950px;
   margin-inline: auto;
+  transition: 0.3s ease;
 }
 
-/* SIDE ADS */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 18px 22px;
+  border-radius: 12px;
+  margin-bottom: 22px;
+}
+
+/* SIDEBAR ADS */
 .side-ad {
   position: fixed;
   top: 50%;
@@ -65,90 +68,56 @@ body {
 
 @media (min-width: 1300px) {
   body {
-    max-width: 950px;
     margin-left: 180px;
     margin-right: 180px;
   }
 }
 
-/* UI STYLES (unchanged) */
-h2, h3 { margin-top: 0; }
-.card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  padding: 18px 22px;
-  border-radius: 12px;
-  margin-bottom: 22px;
-  backdrop-filter: blur(6px);
-}
-.theme-toggle-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 15px;
-}
-.theme-toggle {
-  width: 60px;
-  height: 28px;
-  background: var(--toggle-bg);
-  border-radius: 40px;
-  backdrop-filter: var(--toggle-blur);
-  position: relative;
-  cursor: pointer;
-}
-.theme-toggle .knob {
-  width: 24px;
-  height: 24px;
-  background: var(--toggle-knob);
-  border-radius: 50%;
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.3s ease;
-}
-[data-theme="dark"] .theme-toggle .knob { transform: translateX(32px); }
+/* GENERAL UI */
 button {
   background: var(--button);
   color: var(--button-text);
   padding: 8px 14px;
   border-radius: 6px;
-  border: none;
-  cursor: pointer;
+  border: 0;
   font-weight: 600;
+  cursor: pointer;
 }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
+
 textarea, input {
   width: 100%;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
+  background: var(--card);
+  color: var(--text);
 }
-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { border: 1px solid var(--border); padding: 6px; }
-#dropZone {
+
+#dropZone, #attachmentDropZone {
   border: 2px dashed var(--border);
-  padding: 20px;
+  padding: 16px;
   text-align: center;
   border-radius: 10px;
+  margin-top: 10px;
 }
-#dropZone.dragover {
-  background: rgba(26,115,232,0.12);
+#dropZone.dragover, #attachmentDropZone.dragover {
+  background: rgba(26,115,232,0.15);
   border-color: #1a73e8;
 }
+
 #failedBtn {
   display: none;
-  margin-top: 10px;
+  margin-top: 12px;
   background: #d93025;
-  color: white;
-  padding: 7px 12px;
-  border-radius: 6px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ================= TOP BANNER AD ================= -->
-<div style="width:100%; text-align:center; margin-bottom:15px;">
+<!-- TOP BANNER AD -->
+<div style="width:100%; text-align:center; margin-bottom:14px;">
   <ins class="adsbygoogle"
        style="display:block"
        data-ad-client="ca-pub-6677493574742233"
@@ -158,31 +127,25 @@ th, td { border: 1px solid var(--border); padding: 6px; }
   <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </div>
 
-<!-- ================= LEFT AD ================= -->
+<!-- LEFT AD -->
 <div id="left-ad">
   <ins class="adsbygoogle"
-       style="display:block; width:160px; height:600px;"
-       data-ad-client="ca-pub-6677493574742233"
-       data-ad-slot="123456001"></ins>
+    style="display:block; width:160px; height:600px;"
+    data-ad-client="ca-pub-6677493574742233"
+    data-ad-slot="123456001"></ins>
   <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </div>
 
-<!-- ================= RIGHT AD ================= -->
+<!-- RIGHT AD -->
 <div id="right-ad">
   <ins class="adsbygoogle"
-       style="display:block; width:160px; height:600px;"
-       data-ad-client="ca-pub-6677493574742233"
-       data-ad-slot="123456002"></ins>
+    style="display:block; width:160px; height:600px;"
+    data-ad-client="ca-pub-6677493574742233"
+    data-ad-slot="123456002"></ins>
   <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </div>
 
-<!-- ================= MAIN CONTENT (unchanged) ================= -->
-
-<div class="theme-toggle-wrapper">
-  <div class="theme-toggle" onclick="toggleTheme()"><div class="knob"></div></div>
-</div>
-
-<h2>Bulk Gmail Sender with Drive Attachments</h2>
+<h2>Bulk Gmail Sender with Attachments</h2>
 
 <!-- LOGIN -->
 <div class="card">
@@ -191,79 +154,59 @@ th, td { border: 1px solid var(--border); padding: 6px; }
   <div id="loginStatus" style="margin-top:8px;"></div>
 </div>
 
-<!-- DOWNLOAD / UPLOAD -->
+<!-- PERFORMA + ATTACHMENTS -->
 <div class="card">
-  <h3>2. Download & Upload Performa</h3>
+  <h3>2. Upload Performa & Attachments</h3>
+
   <button onclick="downloadPerforma()">Download Performa (.xlsx)</button>
   <br><br>
+
+  <b>Upload Performa (.xlsx):</b>
   <input type="file" id="fileInput" accept=".xlsx" />
-  <div id="dropZone">Drag & drop .xlsx here</div>
+  <div id="dropZone">Drag & drop Performa here</div>
   <div id="fileInfo"></div>
   <div id="tableContainer" style="margin-top:12px;"></div>
+
+  <hr style="margin:18px 0;">
+
+  <b>Upload Attachments (Drag & Drop or Click):</b><br>
+  <input type="file" id="attachmentInput" multiple />
+
+  <div id="attachmentDropZone">Drag & drop attachments here</div>
+
+  <div id="attachmentUploadStatus" style="margin-top:8px; font-size:13px;"></div>
 </div>
 
 <!-- EMAIL CONTENT -->
 <div class="card">
   <h3>3. Email Content</h3>
+
   <label>Subject:</label>
   <input id="subject" value="Your Document" />
+
   <br><br>
-  <label>Message (HTML allowed):</label>
+
+  <label>Message:</label>
   <textarea id="editor" rows="6">
 <p>Dear {{Name}},</p>
 <p>Your document is attached below.</p>
-<p>Download link: {{DocumentLink}}</p>
 <p>Regards,<br/>Office</p>
 </textarea>
-</div>
-
-<!-- INSTRUCTIONS -->
-<div class="card">
-  <h3 style="cursor:pointer;" onclick="toggleInstructions()">📘 How to Use This Mail Sender</h3>
-  <div id="instructions" style="display:none; font-size:14px; line-height:1.6;">
-    <h4>Step 1 — Google Login</h4>
-    <p>Click "Sign in with Google" and allow Gmail + Drive permissions.</p>
-    <h4>Step 2 — Download Performa</h4>
-    <p>Fill these fields:</p>
-    <ul>
-      <li>Name</li>
-      <li>Email</li>
-      <li>Batch</li>
-      <li>Reg No</li>
-      <li>Document Link</li>
-    </ul>
-    <h4>Step 3 — Upload Excel File</h4>
-    <p>Drop or select the .xlsx file. Preview will appear.</p>
-    <h4>Step 4 — Write Email</h4>
-    <p>You may use: {{Name}}, {{DocumentLink}}</p>
-    <h4>Step 5 — Start Sending</h4>
-    <p>System shows progress, ETA, logs.</p>
-    <h4>Step 6 — Failed Logs</h4>
-    <p>If any email fails, download <b>failed_rows.csv</b>.</p>
-  </div>
 </div>
 
 <!-- SEND -->
 <div class="card">
   <h3>4. Send Emails</h3>
   <button id="sendBtn" disabled onclick="startBulkSend()">Start Sending Emails</button>
+
   <div id="progress" style="margin-top:10px;"></div>
   <div id="eta"></div>
   <div id="log"></div>
+
   <button id="failedBtn" onclick="downloadFailed()">Download Failed Rows (CSV)</button>
 </div>
 
-<audio id="successSound">
-  <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
-</audio>
-
-<!-- ================= ORIGINAL SCRIPT (unchanged) ================= -->
-<script>
-/* (SCRIPT CONTENT UNCHANGED — SAME AS YOU PROVIDED) */
-[Your full script remains here exactly unchanged]
-</script>
-
-<!-- ================= FOOTER WIDE BANNER AD ================= -->
+<!-- FOOTER AD -->
 <div style="width:100%; text-align:center; margin-top:25px;">
   <ins class="adsbygoogle"
        style="display:block"
@@ -273,6 +216,266 @@ th, td { border: 1px solid var(--border); padding: 6px; }
        data-full-width-responsive="true"></ins>
   <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </div>
+
+<audio id="successSound">
+  <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+</audio>
+
+<script>
+/* CONFIG */
+const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
+const SCRIPT_WEBAPP_URL = "YOUR_WEBAPP_URL_HERE"; // replace with your URL
+
+let accessToken = null;
+let sheetRows = [];
+let failedRows = [];
+let sending = false;
+
+/* THEME TOGGLE */
+function toggleTheme() {
+  const current = document.body.getAttribute("data-theme");
+  document.body.setAttribute("data-theme", current === "dark" ? "light" : "dark");
+}
+
+/* DOWNLOAD PERFORMA */
+function downloadPerforma() {
+  const url = "https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Performa.xlsx";
+  a.click();
+}
+
+/* LOGIN */
+window.onload = function() {
+  google.accounts.id.initialize({
+    client_id: CLIENT_ID,
+    callback: handleLogin
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById("g_id_signin"),
+    { theme: "outline", size: "large" }
+  );
+
+  setupPerformaDrag();
+  setupAttachmentDragDrop();
+};
+
+function handleLogin() {
+  document.getElementById("loginStatus").innerText = "Requesting permissions…";
+
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
+    callback: (t) => {
+      accessToken = t.access_token;
+      document.getElementById("loginStatus").innerText = "Login successful.";
+      updateSendButton();
+    }
+  });
+
+  tokenClient.requestAccessToken();
+}
+
+/* ---------- PERFORMA HANDLING ---------- */
+function setupPerformaDrag() {
+  const dz = document.getElementById("dropZone");
+
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dragover") });
+  dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+  dz.addEventListener("drop", e => {
+    e.preventDefault();
+    dz.classList.remove("dragover");
+    handleFile(e.dataTransfer.files[0]);
+  });
+
+  document.getElementById("fileInput").addEventListener("change", e => {
+    handleFile(e.target.files[0]);
+  });
+}
+
+function handleFile(file) {
+  if (!file || !file.name.endsWith(".xlsx")) return;
+
+  document.getElementById("fileInfo").innerText = "Loaded: " + file.name;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    if (json.length < 2) return;
+
+    const header = ["Name", "Email", "Attachment Name"];
+    const idx = {
+      name: 0,
+      email: 1,
+      attach: 2
+    };
+
+    sheetRows = json.slice(1).map(row => ({
+      name: row[idx.name] || "",
+      email: row[idx.email] || "",
+      attachmentName: row[idx.attach] || ""
+    }));
+
+    renderTable(header, json.slice(1));
+    updateSendButton();
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function renderTable(header, rows) {
+  let html = "<table><thead><tr>";
+  header.forEach(h => html += "<th>" + h + "</th>");
+  html += "</tr></thead><tbody>";
+
+  rows.slice(0, 10).forEach(r => {
+    html += `<tr><td>${r[0] || ""}</td><td>${r[1] || ""}</td><td>${r[2] || ""}</td></tr>`;
+  });
+
+  html += "</tbody></table>";
+  document.getElementById("tableContainer").innerHTML = html;
+}
+
+/* ---------- ATTACHMENT UPLOAD ---------- */
+function setupAttachmentDragDrop() {
+  const dz = document.getElementById("attachmentDropZone");
+
+  dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("dragover"); });
+  dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
+  dz.addEventListener("drop", e => {
+    e.preventDefault();
+    dz.classList.remove("dragover");
+    uploadAttachments(e.dataTransfer.files);
+  });
+
+  document.getElementById("attachmentInput").addEventListener("change", e => {
+    uploadAttachments(e.target.files);
+  });
+}
+
+async function uploadAttachments(filesList) {
+  const status = document.getElementById("attachmentUploadStatus");
+  const files = Array.from(filesList);
+
+  status.innerText = `Uploading ${files.length} file(s)…`;
+
+  const formData = new FormData();
+  formData.append("mode", "uploadAttachments");
+  files.forEach(f => formData.append("files", f, f.name));
+
+  try {
+    const res = await fetch(SCRIPT_WEBAPP_URL, {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    status.innerText = `Uploaded ${data.length} file(s) successfully.`;
+  } catch (err) {
+    status.innerText = "Upload failed.";
+  }
+}
+
+/* ---------- SEND LOGIC ---------- */
+function updateSendButton() {
+  const ok = accessToken &&
+    sheetRows.length > 0 &&
+    document.getElementById("subject").value.trim() &&
+    document.getElementById("editor").value.trim() &&
+    !sending;
+
+  document.getElementById("sendBtn").disabled = !ok;
+}
+
+async function startBulkSend() {
+  sending = true;
+  updateSendButton();
+
+  const subject = document.getElementById("subject").value.trim();
+  const msg = document.getElementById("editor").value.trim();
+
+  const total = sheetRows.length;
+  failedRows = [];
+
+  const start = Date.now();
+
+  for (let i = 0; i < total; i++) {
+    const r = sheetRows[i];
+
+    const htmlBody = msg.replace(/{{Name}}/g, r.name);
+
+    document.getElementById("progress").innerText = `Sending ${i+1}/${total}`;
+    document.getElementById("log").innerText = r.email;
+
+    const ok = await sendOne(r, subject, htmlBody);
+    if (!ok) failedRows.push(r);
+
+    const elapsed = (Date.now() - start) / 1000;
+    const avg = elapsed / (i + 1);
+    const remaining = Math.round(avg * (total - (i + 1)));
+    document.getElementById("eta").innerText = `Estimated time left: ${remaining}s`;
+
+    await new Promise(res => setTimeout(res, 300));
+  }
+
+  sending = false;
+  updateSendButton();
+
+  if (!failedRows.length) {
+    document.getElementById("progress").innerText = "All emails sent!";
+    document.getElementById("successSound").play();
+  } else {
+    document.getElementById("progress").innerText =
+      `${total - failedRows.length}/${total} sent. ${failedRows.length} failed.`;
+    document.getElementById("failedBtn").style.display = "inline-block";
+  }
+}
+
+async function sendOne(r, subject, htmlBody) {
+  try {
+    const res = await fetch(SCRIPT_WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "sendEmailWithAttachmentName",
+        to: r.email,
+        subject,
+        htmlBody,
+        attachmentName: r.attachmentName,
+        accessToken
+      })
+    });
+
+    const data = await res.json();
+    return data.success;
+  } catch {
+    return false;
+  }
+}
+
+/* FAILED LOG DOWNLOAD */
+function downloadFailed() {
+  if (!failedRows.length) return;
+
+  let csv = "Name,Email,Attachment Name\n";
+  failedRows.forEach(r => {
+    csv += `"${r.name}","${r.email}","${r.attachmentName}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "failed_rows.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
 
 </body>
 </html>

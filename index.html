@@ -1,590 +1,559 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>officeworkhelp.in – Smart Work Automation</title>
-
-<!-- GOOGLE LOGIN SDK -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
-<!-- XLSX PARSER -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-<!-- Tailwind CSS -->
-<script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-
-<!-- html2pdf for Incident Report PDF export -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
 <script>
-tailwind.config = {
-    theme: {
-        extend: {
-            fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-            },
-            colors: {
-                'bubble-teal': '#3ef0e8'
+/* ============================================================
+   GLOBAL CONFIG + SHARED STATE + HELPERS
+============================================================ */
+
+const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
+const SCRIPT_WEBAPP_URL =
+  "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
+
+const SECTIONS = ["home", "tools", "bulk-email", "report-formatter", "about"];
+
+/* ---- Bulk Email State ---- */
+let accessToken = null;
+let sheetRows = [];
+let failedRows = [];
+let sending = false;
+
+/* ---- Incident Report State ---- */
+let IR_USER = null;
+let IR_LOGIN_TIME = null;
+let IR_AUTH_SIG = null;
+let IR_PHOTOS = [];
+
+/* ---- Daily Quota (Bulk Email) ---- */
+const DAILY_LIMIT = 100;
+const QUOTA_DAY_KEY = "owh_quota_day";
+const QUOTA_COUNT_KEY = "owh_quota_count";
+
+function getTodayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function loadQuota() {
+    const today = getTodayKey();
+    const storedDay = localStorage.getItem(QUOTA_DAY_KEY);
+    let count = Number(localStorage.getItem(QUOTA_COUNT_KEY) || 0);
+
+    if (storedDay !== today) {
+        count = 0;
+        localStorage.setItem(QUOTA_DAY_KEY, today);
+        localStorage.setItem(QUOTA_COUNT_KEY, "0");
+    }
+    return count;
+}
+
+function saveQuota(count) {
+    localStorage.setItem(QUOTA_COUNT_KEY, String(count));
+}
+
+function quotaExceeded() {
+    return loadQuota() >= DAILY_LIMIT;
+}
+
+function incrementQuota() {
+    let count = loadQuota();
+    count++;
+    saveQuota(count);
+    updateQuotaDisplay();
+}
+
+function updateQuotaDisplay() {
+    const used = loadQuota();
+    const countEl = document.getElementById("quotaCount");
+    const limitEl = document.getElementById("quotaLimit");
+    if (countEl) countEl.innerText = used;
+    if (limitEl) limitEl.innerText = DAILY_LIMIT;
+}
+
+/* ---- Shared JWT Parser ---- */
+function parseJwt(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+        atob(base64)
+            .split('')
+            .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+    );
+    return JSON.parse(jsonPayload);
+}
+</script>
+<script>
+/* ============================================================
+   SECTION SWITCHING + DROPDOWN + BACKGROUND BUBBLES
+============================================================ */
+
+function showSection(id) {
+    SECTIONS.forEach(secId => {
+        const el = document.getElementById(secId);
+        if (!el) return;
+        if (secId === id) el.classList.remove("hidden-section");
+        else el.classList.add("hidden-section");
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    const bubbleContainer = document.getElementById("bubble-container");
+    if (bubbleContainer) {
+        bubbleContainer.style.opacity = (id === "home") ? "1" : "0.35";
+    }
+
+    if (id === "bulk-email") {
+        initGoogleButton();
+        setupPerformaDrag();
+        setupAttachmentDragDrop();
+        updateSendButton();
+        updateQuotaDisplay();
+    }
+
+    if (id === "report-formatter") {
+        irActivateSection();
+    }
+}
+
+/* ---- Dropdown (Tools) ---- */
+function setupDropdown() {
+    const toolsBtn = document.getElementById("toolsBtn");
+    const dropdown = document.getElementById("toolsDropdown");
+    if (!toolsBtn || !dropdown) return;
+
+    function closeDropdown() {
+        dropdown.classList.remove("show");
+    }
+    window.closeDropdown = closeDropdown;
+
+    toolsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle("show");
+    });
+
+    document.addEventListener("click", (e) => {
+        if (!dropdown.contains(e.target) && !toolsBtn.contains(e.target)) {
+            closeDropdown();
+        }
+    });
+}
+
+/* ---- Floating Bubble Background ---- */
+function spawnBubbles() {
+    const container = document.getElementById("bubble-container");
+    if (!container) return;
+
+    const bubbleCount = 14;
+    for (let i = 0; i < bubbleCount; i++) {
+        const b = document.createElement("div");
+        b.className = "bubble";
+
+        const size = 80 + Math.random() * 180;
+        const left = Math.random() * 100;
+        const delay = Math.random() * 15;
+        const duration = 16 + Math.random() * 12;
+        const hue = 170 + Math.random() * 40;
+
+        b.style.width = size + "px";
+        b.style.height = size + "px";
+        b.style.left = left + "vw";
+        b.style.bottom = "-260px";
+        b.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.7), hsla(${hue}, 80%, 30%, 0.1))`;
+        b.style.animationDuration = duration + "s";
+        b.style.animationDelay = delay + "s";
+
+        container.appendChild(b);
+    }
+}
+</script>
+<script>
+/* ============================================================
+   BULK EMAIL — GOOGLE LOGIN + PERFORMA + ATTACHMENTS
+============================================================ */
+
+let bulkTokenClient = null;
+
+/* ---- Google Sign-in button for Bulk Email ---- */
+function initGoogleButton() {
+    const container = document.getElementById("g_id_signin");
+    if (!container) return;
+    if (container.getAttribute("data-rendered") === "true") return;
+    if (!window.google || !google.accounts || !google.accounts.id) return;
+
+    google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: handleBulkIdCredential
+    });
+
+    google.accounts.id.renderButton(container, {
+        theme: "outline",
+        size: "large"
+    });
+
+    container.setAttribute("data-rendered", "true");
+}
+
+/* ---- Handle ID Credential → Request OAuth Token ---- */
+function handleBulkIdCredential() {
+    const status = document.getElementById("loginStatus");
+    if (status) status.innerText = "Requesting permissions…";
+
+    if (!google.accounts || !google.accounts.oauth2) {
+        if (status) status.innerText = "Google OAuth library not ready.";
+        return;
+    }
+
+    if (!bulkTokenClient) {
+        bulkTokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
+            callback: (t) => {
+                accessToken = t.access_token;
+                if (status) status.innerText = "Login successful. Ready to send.";
+                updateSendButton();
             }
+        });
+    }
+
+    bulkTokenClient.requestAccessToken();
+}
+
+/* ---- Performa Template Download ---- */
+function downloadPerforma() {
+    const url =
+      "https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Performa.xlsx";
+    a.click();
+}
+
+/* ---- Performa Drag & Drop + File Parse ---- */
+function setupPerformaDrag() {
+    const dz = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    if (!dz || !fileInput) return;
+
+    const newDz = dz.cloneNode(true);
+    dz.parentNode.replaceChild(newDz, dz);
+
+    const newFileInput = fileInput.cloneNode(true);
+    fileInput.parentNode.replaceChild(newFileInput, fileInput);
+
+    newDz.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("dragleave", () => {
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("drop", (e) => {
+        e.preventDefault();
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handlePerformaFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    newFileInput.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files[0]) {
+            handlePerformaFile(e.target.files[0]);
+        }
+    });
+}
+
+function handlePerformaFile(file) {
+    const info = document.getElementById("fileInfo");
+    if (!file || !file.name.endsWith(".xlsx")) {
+        if (info) info.innerText = "Please select a valid .xlsx file.";
+        return;
+    }
+    if (info) info.innerText = "Loaded: " + file.name;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+            if (json.length < 2) {
+                if (info) info.innerText = "File has a header but no data rows.";
+                sheetRows = [];
+                renderTable([], []);
+                updateSendButton();
+                return;
+            }
+
+            const header = ["Name", "Email", "Attachment Name"];
+            const idx = { name: 0, email: 1, attach: 2 };
+
+            sheetRows = json.slice(1)
+                .map(row => ({
+                    name: row[idx.name] || "",
+                    email: row[idx.email] || "",
+                    attachmentName: row[idx.attach] || ""
+                }))
+                .filter(r => r.email);
+
+            renderTable(header, sheetRows.map(r => [r.name, r.email, r.attachmentName]));
+            updateSendButton();
+        } catch (err) {
+            console.error("Performa parse error:", err);
+            if (info) info.innerText = "Error processing file. Please check console.";
+            sheetRows = [];
+            renderTable([], []);
+            updateSendButton();
+        }
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function renderTable(header, rows) {
+    const container = document.getElementById("tableContainer");
+    if (!container) return;
+
+    if (!rows.length) {
+        container.innerHTML = '<p class="text-gray-500 text-sm mt-2">No valid rows detected.</p>';
+        return;
+    }
+
+    let html = `<p class="text-gray-400 text-sm mb-2">Previewing first 10 of ${rows.length} rows:</p>`;
+    html += '<div class="overflow-x-auto">';
+    html += '<table class="w-full text-sm border border-gray-700 rounded-lg overflow-hidden">';
+    html += '<thead class="bg-gray-900"><tr>';
+    header.forEach(h => {
+        html += `<th class="px-3 py-2 text-left border-b border-gray-700 text-bubble-teal">${h}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    rows.slice(0, 10).forEach(r => {
+        html += '<tr class="border-b border-gray-800 hover:bg-gray-900/60">';
+        html += `<td class="px-3 py-2">${r[0] || ""}</td>`;
+        html += `<td class="px-3 py-2">${r[1] || ""}</td>`;
+        html += `<td class="px-3 py-2">${r[2] || ""}</td>`;
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+/* ---- Attachments Drag & Drop ---- */
+function setupAttachmentDragDrop() {
+    const dz = document.getElementById("attachmentDropZone");
+    const attachmentInput = document.getElementById("attachmentInput");
+    if (!dz || !attachmentInput) return;
+
+    const newDz = dz.cloneNode(true);
+    dz.parentNode.replaceChild(newDz, dz);
+
+    const newInput = attachmentInput.cloneNode(true);
+    attachmentInput.parentNode.replaceChild(newInput, attachmentInput);
+
+    newDz.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("dragleave", () => {
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("drop", (e) => {
+        e.preventDefault();
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+        if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            uploadAttachments(e.dataTransfer.files);
+        }
+    });
+
+    newInput.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files.length) {
+            uploadAttachments(e.target.files);
+        }
+    });
+}
+
+async function uploadAttachments(filesList) {
+    const status = document.getElementById("attachmentUploadStatus");
+    const files = Array.from(filesList || []);
+    if (!files.length) {
+        if (status) status.innerText = "No files selected.";
+        return;
+    }
+
+    if (status) status.innerText = `Uploading ${files.length} file(s)…`;
+
+    const formData = new FormData();
+    formData.append("mode", "uploadAttachments");
+    files.forEach(f => formData.append("files", f, f.name));
+
+    try {
+        const res = await fetch(SCRIPT_WEBAPP_URL, {
+            method: "POST",
+            body: formData
+        });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+            if (status) status.innerText = `Uploaded ${data.length} file(s) successfully.`;
+        } else if (data && typeof data === "object" && data.success === false) {
+            if (status) status.innerText = `Upload failed: ${data.error || "Server error."}`;
+        } else {
+            if (status) status.innerText = "Upload completed.";
+        }
+    } catch (err) {
+        console.error("Attachment upload error:", err);
+        if (status) status.innerText = "Upload failed. See console.";
+    }
+}
+
+/* ---- Send Button Enable Logic ---- */
+function updateSendButton() {
+    const sendBtn = document.getElementById("sendBtn");
+    if (!sendBtn) return;
+
+    const subject = document.getElementById("subject")?.value.trim();
+    const msg = document.getElementById("editor")?.value.trim();
+
+    const ok = accessToken &&
+               sheetRows.length > 0 &&
+               subject &&
+               msg &&
+               !sending &&
+               !quotaExceeded();
+
+    sendBtn.disabled = !ok;
+
+    if (quotaExceeded()) {
+        sendBtn.textContent = "Daily Limit Reached";
+        sendBtn.classList.add("opacity-60", "cursor-not-allowed");
+    } else {
+        sendBtn.textContent = "Start Sending Emails";
+        if (ok) {
+            sendBtn.classList.remove("opacity-60", "cursor-not-allowed");
+        } else {
+            sendBtn.classList.add("opacity-60", "cursor-not-allowed");
         }
     }
 }
 </script>
-
-<style>
-/* GLOBAL */
-body {
-    background: #020617;
-    color: #e2e8f0;
-    font-family: 'Inter', sans-serif;
-}
-
-/* Floating bubble animation */
-.bubble {
-    position: absolute;
-    border-radius: 50%;
-    opacity: 0.55;
-    filter: blur(4px);
-    animation: floatUp 18s infinite ease-in;
-}
-
-@keyframes floatUp {
-    0% { transform: translateY(0) scale(1); opacity: 0.3; }
-    50% { opacity: 0.65; }
-    100% { transform: translateY(-150vh) scale(1.4); opacity: 0; }
-}
-
-/* Section fade-in */
-.fade-in { animation: fadeIn 1.2s ease forwards; opacity: 0; }
-@keyframes fadeIn { to { opacity: 1; } }
-
-/* Hide / show */
-.hidden-section { display: none; }
-.active-section { display: block; }
-
-/* ---- NAVIGATION / DROPDOWN ---- */
-.nav-link { transition: color .2s; }
-.nav-link:hover { color: #3ef0e8; }
-
-/* Dropdown container */
-.dropdown {
-    position: relative;
-}
-
-/* Actual dropdown menu */
-.dropdown-menu {
-    position: absolute;
-    top: 2.6rem;
-    right: 0;
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 0.5rem;
-    padding: 0.5rem 0;
-    width: 220px;
-    opacity: 0;
-    transform: translateY(-8px);
-    pointer-events: none;
-    transition: opacity .25s ease, transform .25s ease;
-    z-index: 50;
-}
-
-/* Items */
-.dropdown-item {
-    padding: 0.6rem 1rem;
-    font-size: 0.9rem;
-    color: #94a3b8;
-    transition: background .2s, color .2s;
-}
-.dropdown-item:hover {
-    background: #1e293b;
-    color: #3ef0e8;
-    cursor: pointer;
-}
-
-/* ACTIVE dropdown (shown) */
-.dropdown-menu.show {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
-}
-
-/* Mobile tap: disable hover open, JS controls behavior */
-@media (hover: hover) {
-    .dropdown:hover .dropdown-menu {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-    }
-}
-</style>
-</head>
-<body class="antialiased">
-<!-- FLOATING BUBBLES -->
-<div id="bubble-container" class="fixed inset-0 overflow-hidden pointer-events-none -z-10"></div>
-
-<!-- NAVIGATION BAR -->
-<header class="sticky top-0 bg-gray-900/60 backdrop-blur-md border-b border-gray-700 z-50">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-
-        <!-- LOGO -->
-        <h1 onclick="showSection('home')"
-            class="text-2xl font-black text-bubble-teal cursor-pointer">
-            officeworkhelp.in
-        </h1>
-
-        <!-- NAVIGATION -->
-        <nav class="flex gap-8 items-center text-gray-300">
-
-            <button onclick="showSection('home')" class="nav-link">
-                Home
-            </button>
-
-            <!-- ---- TOOLS DROPDOWN ---- -->
-            <div class="dropdown">
-
-                <button id="toolsBtn" class="nav-link flex items-center gap-1">
-                    Tools
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                </button>
-
-                <!-- Dropdown menu -->
-                <div id="toolsDropdown" class="dropdown-menu">
-
-                    <div class="dropdown-item"
-                        onclick="showSection('bulk-email'); closeDropdown();">
-                        Bulk Email Sender
-                    </div>
-
-                    <div class="dropdown-item"
-                        onclick="showSection('report-formatter'); closeDropdown();">
-                        Incident Report Formatter
-                    </div>
-
-                    <div class="dropdown-item opacity-50 cursor-not-allowed">
-                        Data Sync Assistant (coming soon)
-                    </div>
-
-                </div>
-            </div>
-
-            <button onclick="showSection('about')" class="nav-link">
-                About Me
-            </button>
-        </nav>
-
-    </div>
-</header>
-
-
-<!-- MAIN CONTENT -->
-<main class="max-w-6xl mx-auto px-6 pt-12">
-
-<!-- =======================
-       HOME SECTION
-======================= -->
-<section id="home" class="active-section fade-in min-h-[80vh] flex flex-col justify-center text-center">
-
-    <h2 class="text-5xl sm:text-7xl font-extrabold text-white drop-shadow mb-6 leading-tight">
-        Helping hard work meet smart work
-    </h2>
-
-    <p class="text-gray-400 text-lg max-w-2xl mx-auto">
-        Automating boring office tasks so you can focus on what truly matters.
-    </p>
-
-    <button onclick="showSection('tools')"
-        class="mt-8 px-8 py-3 rounded-xl bg-bubble-teal/20 text-bubble-teal border 
-               border-bubble-teal hover:bg-bubble-teal hover:text-black transition font-semibold">
-        Explore Tools →
-    </button>
-</section>
-
-
-<!-- =======================
-       TOOLS DIRECTORY
-======================= -->
-<section id="tools" class="hidden-section fade-in min-h-[80vh] pt-6">
-
-    <p class="text-bubble-teal text-sm font-mono tracking-widest mb-2">FREE TOOL SUITE</p>
-    <h2 class="text-4xl font-bold mb-10">Select a Productivity Tool</h2>
-
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-
-        <!-- Bulk Email Sender Tool Card -->
-        <div onclick="showSection('bulk-email')"
-            class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl cursor-pointer 
-                   hover:border-bubble-teal transition hover:shadow-lg hover:shadow-bubble-teal/10">
-            <h3 class="text-2xl font-bold text-bubble-teal mb-2">Bulk Email Sender</h3>
-            <p class="text-gray-400 mb-4 text-sm">
-                Send personalized emails with attachments using an Excel performa.
-            </p>
-            <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
-        </div>
-
-        <!-- Incident Report Formatter Tool Card (NEW) -->
-        <div onclick="showSection('report-formatter')"
-            class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl cursor-pointer 
-                   hover:border-bubble-teal transition hover:shadow-lg hover:shadow-bubble-teal/10">
-            <h3 class="text-2xl font-bold text-bubble-teal mb-2">Incident Report Formatter</h3>
-            <p class="text-gray-400 mb-4 text-sm">
-                Convert rough statements + photos into a formal authenticated incident report.
-            </p>
-            <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
-        </div>
-
-        <!-- Placeholder Tool -->
-        <div class="p-6 bg-gray-800/30 border border-gray-700/40 rounded-xl opacity-60">
-            <h3 class="text-2xl font-bold text-gray-500 mb-2">Data Sync Assistant</h3>
-            <p class="text-gray-600 text-sm">Coming soon…</p>
-        </div>
-
-    </div>
-</section>
-<!-- =======================
-   BULK EMAIL SENDER TOOL
-======================= -->
-<section id="bulk-email" class="hidden-section fade-in min-h-[80vh]">
-
-    <div class="mb-10">
-        <p class="text-gray-400 text-sm mb-1">
-            <span class="hover:text-bubble-teal cursor-pointer" onclick="showSection('tools')">Tools</span>
-            / Bulk Email Sender with Attachments
-        </p>
-        <h2 class="text-4xl font-extrabold text-bubble-teal">Bulk Email Sender with Attachments</h2>
-        <p class="text-gray-400 max-w-3xl mt-2">
-            Use an Excel performa to map each recipient to their email address and attachment file name.
-        </p>
-    </div>
-
-
-    <div class="space-y-8">
-
-        <!-- 1. SIGN IN WITH GOOGLE -->
-        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
-            <h3 class="text-xl font-bold text-bubble-teal mb-3">1. Sign in with Google</h3>
-            <p class="text-gray-400 text-sm mb-3">
-                Authorize this tool to send emails and fetch attachments from your Drive.
-            </p>
-
-            <div id="g_id_signin"></div>
-            <div id="loginStatus" class="text-sm text-gray-400 mt-2"></div>
-        </div>
-
-
-        <!-- 2. PERFORMA + ATTACHMENTS -->
-        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
-
-            <h3 class="text-xl font-bold text-bubble-teal mb-3">2. Upload Performa & Attachments</h3>
-
-            <!-- Download Template -->
-            <button onclick="downloadPerforma()"
-                class="mb-4 px-4 py-2 rounded-lg bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
-                       hover:bg-bubble-teal hover:text-black transition">
-                Download Template Performa (.xlsx)
-            </button>
-
-            <!-- Performa Upload -->
-            <label class="block font-semibold text-gray-300 mb-1">Upload Performa (.xlsx):</label>
-            <input type="file" id="fileInput" accept=".xlsx" class="mb-2" />
-
-            <div id="dropZone"
-                 class="border-2 border-dashed border-gray-600 p-4 rounded-lg text-center">
-                Drag & drop Performa here
-            </div>
-
-            <div id="fileInfo" class="text-gray-400 text-sm mt-2"></div>
-            <div id="tableContainer" class="mt-4"></div>
-
-            <hr class="my-6 border-gray-700">
-
-            <!-- Attachments Upload -->
-            <label class="block font-semibold text-gray-300 mb-1">Upload Attachments:</label>
-            <input type="file" id="attachmentInput" multiple class="mb-2" />
-
-            <div id="attachmentDropZone"
-                class="border-2 border-dashed border-gray-600 p-4 rounded-lg text-center">
-                Drag & drop attachments here
-            </div>
-
-            <div id="attachmentUploadStatus" class="text-gray-400 text-sm mt-2"></div>
-        </div>
-
-
-        <!-- 3. EMAIL CONTENT -->
-        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
-            <h3 class="text-xl font-bold text-bubble-teal mb-3">3. Email Content</h3>
-
-            <label class="font-semibold text-gray-300">Subject:</label>
-            <input id="subject" type="text" value="Your Document"
-                class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg mb-5" />
-
-            <label class="font-semibold text-gray-300">Message (HTML allowed):</label>
-            <textarea id="editor" rows="6"
-                class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg font-mono text-sm">
-<p>Dear {{Name}},</p>
-<p>Your document is attached below.</p>
-<p>Regards,<br>Office</p>
-            </textarea>
-        </div>
-
-
-        <!-- 4. SEND EMAILS -->
-        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
-
-            <h3 class="text-xl font-bold text-bubble-teal mb-3">4. Send Emails</h3>
-
-            <!-- Daily quota indicator -->
-            <div id="quotaBar" class="text-sm text-gray-300 mb-3">
-                Daily Usage: <span id="quotaCount">0</span> / <span id="quotaLimit">100</span>
-            </div>
-
-            <button id="sendBtn" disabled onclick="startBulkSend()"
-                class="px-6 py-3 rounded-xl bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
-                       hover:bg-bubble-teal hover:text-black transition font-semibold">
-                Start Sending Emails
-            </button>
-
-            <div id="progress" class="text-bubble-teal font-semibold mt-4"></div>
-            <div id="eta" class="text-gray-400 text-sm mt-1"></div>
-            <div id="log" class="text-gray-500 text-sm font-mono mt-2"></div>
-
-            <button id="failedBtn" onclick="downloadFailed()"
-                class="hidden mt-4 px-4 py-2 bg-red-600 text-white rounded-lg">
-                Download Failed Rows (CSV)
-            </button>
-        </div>
-    </div>
-</section>
-<!-- =======================
-   INCIDENT REPORT FORMATTER (NEW)
-======================= -->
-<section id="report-formatter" class="hidden-section fade-in min-h-[80vh]">
-
-    <div class="mb-10">
-        <p class="text-gray-400 text-sm mb-1">
-            <span class="hover:text-bubble-teal cursor-pointer" onclick="showSection('tools')">Tools</span>
-            / Incident Report Formatter
-        </p>
-        <h2 class="text-4xl font-extrabold text-bubble-teal">Incident Report Formatter</h2>
-        <p class="text-gray-400 max-w-3xl mt-2">
-            Generate a professional, authenticated incident report with photos, event descriptions, and auto-formalized language.
-        </p>
-    </div>
-
-    <!-- ========== LOGIN REQUIRED ========== -->
-    <div id="ir-login-gate"
-         class="bg-gray-800/60 border border-gray-700 rounded-xl p-6 text-center mb-8">
-        <h3 class="text-xl font-bold text-bubble-teal mb-3">Sign in to Access This Tool</h3>
-        <p class="text-gray-400 text-sm mb-4">
-            Authentication is mandatory. Every report will include a verified Google identity block.
-        </p>
-
-        <div id="ir-google-signin"></div>
-
-        <p id="ir-login-status" class="text-sm text-gray-400 mt-3"></p>
-    </div>
-
-    <!-- ========== USER INFO AFTER LOGIN ========== -->
-    <div id="ir-user-info"
-         class="hidden bg-gray-800/40 border border-gray-700 rounded-xl p-4 flex items-center gap-4 mb-8">
-        <img id="ir-user-photo" src="" class="w-12 h-12 rounded-full border border-gray-700" />
-        <div>
-            <p id="ir-user-name" class="font-semibold text-gray-200"></p>
-            <p id="ir-user-email" class="text-sm text-gray-400"></p>
-        </div>
-
-        <button onclick="irLogout()"
-            class="ml-auto px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700">
-            Logout
-        </button>
-    </div>
-
-    <!-- ========== MAIN TOOL UI (LOCKED until login) ========== -->
-    <div id="ir-tool-container" class="hidden grid lg:grid-cols-2 gap-8 items-start">
-
-        <!-- =======================
-              LEFT PANEL — FORM
-        ======================== -->
-        <div class="bg-gray-800/40 border border-gray-700 rounded-xl p-6 space-y-6">
-
-            <!-- INCIDENT SUMMARY -->
-            <div>
-                <label class="font-semibold text-gray-300">Incident Summary</label>
-                <input id="ir-summary" type="text"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
-                       placeholder="Short high-level summary">
-            </div>
-
-            <!-- DATE & TIME -->
-            <div>
-                <label class="font-semibold text-gray-300">Date & Time of Incident</label>
-                <input id="ir-datetime" type="datetime-local"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg">
-            </div>
-
-            <!-- LOCATION -->
-            <div>
-                <label class="font-semibold text-gray-300">Location</label>
-                <input id="ir-location" type="text"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg">
-            </div>
-
-            <!-- PERSONS INVOLVED -->
-            <div>
-                <label class="font-semibold text-gray-300">Persons Involved</label>
-                <textarea id="ir-persons" rows="3"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
-                       placeholder="List individuals involved, separated by commas"></textarea>
-            </div>
-
-            <!-- DESCRIPTION (ROUGH STATEMENT) -->
-            <div>
-                <label class="font-semibold text-gray-300">
-                    Description of Events (Rough Statement)
-                </label>
-                <textarea id="ir-description-raw" rows="5"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
-                       placeholder="Enter the unformatted description here..."></textarea>
-            </div>
-
-            <!-- ACTIONS TAKEN -->
-            <div>
-                <label class="font-semibold text-gray-300">Actions Taken</label>
-                <textarea id="ir-actions" rows="3"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"></textarea>
-            </div>
-
-            <!-- INJURIES OR DAMAGE -->
-            <div>
-                <label class="font-semibold text-gray-300">Injuries / Damage</label>
-                <textarea id="ir-damage" rows="3"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"></textarea>
-            </div>
-
-            <!-- WITNESS STATEMENTS -->
-            <div>
-                <label class="font-semibold text-gray-300">Witness Statements</label>
-                <textarea id="ir-witness" rows="3"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"></textarea>
-            </div>
-
-            <!-- SUPPORTING PHOTOS -->
-            <div>
-                <label class="font-semibold text-gray-300">Supporting Photos</label>
-                <input id="ir-photos" type="file" accept="image/*" multiple
-                       class="w-full mt-1 text-gray-400">
-                <p class="text-xs text-gray-500 mt-1">You can upload multiple images. Each will allow captions.</p>
-
-                <div id="ir-photo-list"
-                     class="mt-3 space-y-3"></div>
-            </div>
-
-            <!-- REPORTING OFFICER -->
-            <div>
-                <label class="font-semibold text-gray-300">Reporting Officer Details</label>
-                <input id="ir-officer" type="text"
-                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
-                       placeholder="Officer name / badge / designation">
-            </div>
-
-        </div>
-
-        <!-- =======================
-              RIGHT PANEL — LIVE PREVIEW
-        ======================== -->
-        <div class="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
-
-            <h3 class="text-lg font-bold text-bubble-teal mb-4">
-                Live Preview (Auto-formatted)
-            </h3>
-
-            <div id="ir-preview"
-                 class="bg-gray-900 border border-gray-700 rounded-lg p-6 text-gray-300 text-sm leading-relaxed space-y-3"
-                 style="max-height: 70vh; overflow-y: auto;">
-                 <!-- Dynamic report preview goes here -->
-            </div>
-
-            <div class="flex gap-4 mt-6">
-                <button onclick="irExportPDF()"
-                    class="px-4 py-2 bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
-                           hover:bg-bubble-teal hover:text-black transition rounded-lg">
-                    Export PDF
-                </button>
-
-                <button onclick="irExportWord()"
-                    class="px-4 py-2 bg-gray-700 text-gray-300 border border-gray-600 
-                           hover:bg-gray-600 transition rounded-lg">
-                    Export Word (.docx)
-                </button>
-            </div>
-
-        </div>
-
-    </div> <!-- END TOOL CONTAINER -->
-
-</section>
-<!-- =======================
-   INCIDENT REPORT AUTH BLOCK (AUTO-INJECTED)
-   WATERMARK PLACEHOLDERS (AUTO-INJECTED)
-======================= -->
-
-<!-- This block is invisible; JS inserts real values into #ir-preview -->
-<div id="ir-auth-template" class="hidden">
-    <div class="mt-6 p-4 border border-gray-800 bg-black/20 rounded">
-        <h4 class="font-semibold text-xs tracking-wider text-gray-400 uppercase mb-2">
-            Authenticated User
-        </h4>
-        <p class="text-gray-300 text-sm">
-            <strong>Name:</strong> <span id="auth-name-slot"></span><br>
-            <strong>Email:</strong> <span id="auth-email-slot"></span><br>
-            <strong>Google ID:</strong> <span id="auth-id-slot"></span><br>
-            <strong>Login Time:</strong> <span id="auth-time-slot"></span>
-        </p>
-    </div>
-</div>
-
-<!-- Invisible watermark container -->
-<div id="ir-watermark-template" class="hidden">
-    <div class="text-[9px] text-gray-500 opacity-70 text-right mt-4">
-        <span id="wm-line1">Verified Report • officeworkhelp.in</span><br>
-        <span id="wm-line2">AuthSig: <span id="wm-sig"></span></span>
-    </div>
-</div>
-
-<!-- Watermark HTML comment (hidden in export too) -->
-<div id="ir-watermark-comment" class="hidden">
-    <!-- AUTH_SIG:{SIG};UIDC:{UIDC};TS:{TS} -->
-</div>
 <script>
 /* ============================================================
-      INCIDENT REPORT — AUTH SYSTEM (MANDATORY LOGIN)
-   ============================================================ */
+   BULK EMAIL — SENDING LOGIC + FAILED CSV
+============================================================ */
 
-let IR_USER = null;        // Stores name, email, picture, googleID
-let IR_LOGIN_TIME = null;  // JS Date object
-let IR_AUTH_SIG = null;    // cryptographic watermark signature
+async function startBulkSend() {
+    if (!sheetRows.length) return;
+    sending = true;
+    updateSendButton();
 
-/* -------------------------------
-   Render Google Sign-In Button
--------------------------------- */
+    const failedBtn = document.getElementById("failedBtn");
+    if (failedBtn) failedBtn.classList.add("hidden");
+
+    const subject = document.getElementById("subject").value.trim();
+    const msg = document.getElementById("editor").value.trim();
+
+    const total = sheetRows.length;
+    failedRows = [];
+    const startTime = Date.now();
+
+    for (let i = 0; i < total; i++) {
+        const row = sheetRows[i];
+        const htmlBody = msg.replace(/{{Name}}/g, row.name || "Sir/Madam");
+
+        const progressEl = document.getElementById("progress");
+        const logEl = document.getElementById("log");
+        const etaEl = document.getElementById("eta");
+
+        if (progressEl) progressEl.innerText = `Sending ${i + 1}/${total}…`;
+        if (logEl) logEl.innerText = `Current: ${row.email}`;
+
+        const ok = await sendOne(row, subject, htmlBody);
+        if (!ok) {
+            failedRows.push(row);
+        } else {
+            incrementQuota();
+        }
+
+        const elapsed = (Date.now() - startTime) / 1000;
+        const avg = elapsed / (i + 1);
+        const remaining = Math.round(avg * (total - (i + 1)));
+        if (etaEl) etaEl.innerText = `Estimated time left: ${remaining}s`;
+
+        await new Promise(res => setTimeout(res, 300));
+    }
+
+    sending = false;
+    updateSendButton();
+
+    const progressEl = document.getElementById("progress");
+    const logEl = document.getElementById("log");
+    const etaEl = document.getElementById("eta");
+
+    if (!failedRows.length) {
+        if (progressEl) progressEl.innerText = "All emails sent successfully ✅";
+        const sound = document.getElementById("successSound");
+        if (sound) sound.play().catch(() => {});
+    } else {
+        if (progressEl) {
+            progressEl.innerText =
+              `${total - failedRows.length}/${total} sent successfully, ${failedRows.length} failed.`;
+        }
+        if (failedBtn) failedBtn.classList.remove("hidden");
+    }
+
+    if (logEl) logEl.innerText = "Done.";
+    if (etaEl) etaEl.innerText = "";
+}
+
+async function sendOne(row, subject, htmlBody) {
+    try {
+        const res = await fetch(SCRIPT_WEBAPP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                mode: "sendEmailWithAttachmentName",
+                to: row.email,
+                subject,
+                htmlBody,
+                attachmentName: row.attachmentName,
+                accessToken
+            })
+        });
+        const data = await res.json();
+        return !!data.success;
+    } catch (err) {
+        console.error("Send error for", row.email, err);
+        return false;
+    }
+}
+
+function downloadFailed() {
+    if (!failedRows.length) return;
+
+    let csv = "Name,Email,Attachment Name\n";
+    failedRows.forEach(r => {
+        csv += `"${r.name}","${r.email}","${r.attachmentName}"\n`;
+    });
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "failed_rows.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+</script>
 <script>
+/* ============================================================
+   INCIDENT REPORT — AUTH SYSTEM (LOGIN INSIDE TOOL)
+============================================================ */
+
 function irInitGoogleButton() {
     const container = document.getElementById("ir-google-signin");
     if (!container) return;
-
-    // Prevent duplicate rendering
     if (container.getAttribute("data-rendered") === "true") return;
-
-    // TEMPORARILY unhide container for Google to render properly
-    const oldDisplay = container.style.display;
-    container.style.display = "block";
+    if (!window.google || !google.accounts || !google.accounts.id) return;
 
     google.accounts.id.initialize({
         client_id: CLIENT_ID,
@@ -597,30 +566,11 @@ function irInitGoogleButton() {
         width: 260
     });
 
-    // Restore original display (hidden or block)
-    container.style.display = oldDisplay;
     container.setAttribute("data-rendered", "true");
 }
-</script>
 
-/* -------------------------------
-   Parse Google ID JWT Token
--------------------------------- */
-function irParseJWT(token) {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
-        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-    ).join(''));
-
-    return JSON.parse(jsonPayload);
-}
-
-/* -------------------------------
-   Handle Login Success
--------------------------------- */
 function irHandleLogin(response) {
-    const jwt = irParseJWT(response.credential);
+    const jwt = parseJwt(response.credential);
 
     IR_USER = {
         name: jwt.name,
@@ -631,7 +581,6 @@ function irHandleLogin(response) {
 
     IR_LOGIN_TIME = new Date();
 
-    // Update UI
     document.getElementById("ir-login-gate").classList.add("hidden");
     document.getElementById("ir-user-info").classList.remove("hidden");
 
@@ -639,16 +588,11 @@ function irHandleLogin(response) {
     document.getElementById("ir-user-email").textContent = IR_USER.email;
     document.getElementById("ir-user-photo").src = IR_USER.picture;
 
-    // Unlock the main tool container
     document.getElementById("ir-tool-container").classList.remove("hidden");
 
-    // Update preview immediately
     irUpdatePreview();
 }
 
-/* -------------------------------
-   Logout Handler
--------------------------------- */
 function irLogout() {
     IR_USER = null;
     IR_LOGIN_TIME = null;
@@ -656,54 +600,36 @@ function irLogout() {
 
     document.getElementById("ir-user-info").classList.add("hidden");
     document.getElementById("ir-login-gate").classList.remove("hidden");
-
-    // Lock tool again
     document.getElementById("ir-tool-container").classList.add("hidden");
-
-    // Clear preview
     document.getElementById("ir-preview").innerHTML = "";
 }
 
-/* -------------------------------
-   Section activation logic
--------------------------------- */
 function irActivateSection() {
     irInitGoogleButton();
 
     if (!IR_USER) {
-        // Force login
         document.getElementById("ir-login-gate").classList.remove("hidden");
         document.getElementById("ir-user-info").classList.add("hidden");
         document.getElementById("ir-tool-container").classList.add("hidden");
     } else {
-        // Logged-in: show tool
         document.getElementById("ir-login-gate").classList.add("hidden");
         document.getElementById("ir-user-info").classList.remove("hidden");
         document.getElementById("ir-tool-container").classList.remove("hidden");
     }
 
-    // Always update preview when entering the section
     irUpdatePreview();
 }
 </script>
 <script>
 /* ============================================================
-      INCIDENT REPORT — FORMAL LANGUAGE ENGINE & PREVIEW
-   ============================================================ */
+   INCIDENT REPORT — FORMALIZER + PHOTO HANDLING + PREVIEW
+============================================================ */
 
-/* ------------------------------------------------------------
-   1. FORMAL LANGUAGE TRANSFORMER
-      Converts rough text into professional report language.
------------------------------------------------------------- */
 function irFormalizeText(raw) {
     if (!raw || raw.trim().length === 0) return "";
-
     let text = raw.trim();
-
-    // Ensure starts with uppercase
     text = text.charAt(0).toUpperCase() + text.slice(1);
 
-    // Replace casual language patterns
     text = text.replace(/\bgot\b/gi, "received")
                .replace(/\bgive\b/gi, "provided")
                .replace(/\bwe saw\b/gi, "it was observed that")
@@ -713,62 +639,21 @@ function irFormalizeText(raw) {
                .replace(/\bbeat\b/gi, "assaulted")
                .replace(/\bpush(ed)?\b/gi, "pushed");
 
-    // Add period if missing
     if (!/[.!?]$/.test(text)) text += ".";
-
     return text;
 }
 
+/* Photo list is stored in IR_PHOTOS; change handler is added on DOMContentLoaded */
 
-/* ------------------------------------------------------------
-   2. PHOTO HANDLING (upload + caption inputs)
------------------------------------------------------------- */
-let IR_PHOTOS = [];  // Each element: { url, caption }
-
-document.getElementById("ir-photos").addEventListener("change", function () {
-    IR_PHOTOS = [];
-
-    const preview = document.getElementById("ir-photo-list");
-    preview.innerHTML = "";
-
-    Array.from(this.files).forEach(file => {
-        const url = URL.createObjectURL(file);
-
-        const container = document.createElement("div");
-        container.className = "bg-gray-900 p-3 rounded-lg border border-gray-700";
-
-        container.innerHTML = `
-            <img src="${url}" class="w-full max-h-40 object-cover rounded mb-2 border border-gray-800">
-            <input type="text" class="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-gray-300"
-                   placeholder="Caption for this photo">
-        `;
-
-        preview.appendChild(container);
-
-        IR_PHOTOS.push({
-            url,
-            captionInput: container.querySelector("input")
-        });
-    });
-
-    irUpdatePreview();
-});
-
-
-/* ------------------------------------------------------------
-   3. MAIN PREVIEW RENDERER
------------------------------------------------------------- */
 function irUpdatePreview() {
     const p = document.getElementById("ir-preview");
     if (!p) return;
 
-    // If not logged in → show nothing
     if (!IR_USER) {
         p.innerHTML = "<p class='text-gray-500 text-sm'>Please sign in to start filling the report.</p>";
         return;
     }
 
-    /* Collect Inputs */
     const summary        = document.getElementById("ir-summary").value.trim();
     const datetime       = document.getElementById("ir-datetime").value.trim();
     const location       = document.getElementById("ir-location").value.trim();
@@ -781,7 +666,6 @@ function irUpdatePreview() {
 
     const description = irFormalizeText(rawDescription);
 
-    /* AUTH BLOCK TEMPLATE */
     const authBlock = `
         <div class="mt-6 p-4 border border-gray-800 bg-black/20 rounded">
             <h4 class="font-semibold text-xs tracking-wider text-gray-400 uppercase mb-2">Authenticated User</h4>
@@ -794,7 +678,6 @@ function irUpdatePreview() {
         </div>
     `;
 
-    /* BUILD PHOTOS SECTION */
     let photosHTML = "";
     IR_PHOTOS.forEach((pObj, idx) => {
         const caption = pObj.captionInput.value || `Photo ${idx + 1}`;
@@ -806,13 +689,11 @@ function irUpdatePreview() {
         `;
     });
 
-    /* ========== COMPLEX WATERMARK (TEXT PORTION) ========== */
     const uidFrag = IR_USER.id.slice(-4);
     const ts = Date.now().toString();
     const random = Math.floor(Math.random() * 999999).toString();
     const rawSig = uidFrag + "|" + ts + "|" + random;
 
-    // TEMP signature — real SHA-256 done in PART 8
     IR_AUTH_SIG = btoa(rawSig).slice(0, 24);
 
     const watermarkHTML = `
@@ -822,7 +703,6 @@ function irUpdatePreview() {
         </div>
     `;
 
-    /* ========== BUILD FULL REPORT HTML ========== */
     p.innerHTML = `
         <h2 class="text-xl font-bold text-white mb-4">Incident Report</h2>
 
@@ -847,52 +727,33 @@ function irUpdatePreview() {
         <p class="mt-6"><strong>Reporting Officer:</strong> ${officer || "-"}</p>
     `;
 }
-
-
-/* ------------------------------------------------------------
-   4. Trigger preview on ANY input change
------------------------------------------------------------- */
-document.addEventListener("input", function (e) {
-    const fields = [
-        "ir-summary", "ir-datetime", "ir-location", "ir-persons",
-        "ir-description-raw", "ir-actions", "ir-damage",
-        "ir-witness", "ir-officer"
-    ];
-    if (fields.includes(e.target.id)) irUpdatePreview();
-});
 </script>
 <script>
 /* ============================================================
-      INCIDENT REPORT — EXPORT ENGINE (PDF + WORD + HASH)
-   ============================================================ */
+   INCIDENT REPORT — EXPORT ENGINE (PDF + WORD + HASH)
+============================================================ */
 
-/* ------------------------------------------------------------
-   SHA-256 HASH (browser-native)
------------------------------------------------------------- */
 async function irSHA256(str) {
     const enc = new TextEncoder().encode(str);
     const buf = await crypto.subtle.digest("SHA-256", enc);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, "0"))
+        .join("");
 }
 
-/* ------------------------------------------------------------
-   BUILD COMPLETE RAW REPORT HTML (for export only)
------------------------------------------------------------- */
 async function irBuildExportHTML() {
     if (!IR_USER) return "";
 
     const preview = document.getElementById("ir-preview").innerHTML;
 
-    /* Build a high-entropy watermark signature */
     const salt = Math.random().toString(36).substring(2, 12);
     const ts = Date.now().toString();
     const data = IR_USER.email + "|" + IR_USER.id + "|" + ts + "|" + salt;
 
     const hash = await irSHA256(data);
-    IR_AUTH_SIG = hash.substring(0, 32);      // Strong 256-bit derived sig
+    IR_AUTH_SIG = hash.substring(0, 32);
     const uidc = IR_USER.id.slice(-4);
 
-    /* Invisible watermark comment */
     const hiddenComment = `
         <!-- AUTH_SIG:${IR_AUTH_SIG};UIDC:${uidc};TS:${ts};SALT:${salt} -->
     `;
@@ -909,9 +770,6 @@ async function irBuildExportHTML() {
     `;
 }
 
-/* ------------------------------------------------------------
-   EXPORT PDF — html2pdf.js
------------------------------------------------------------- */
 async function irExportPDF() {
     if (!IR_USER) {
         alert("Please sign in to generate a report.");
@@ -922,7 +780,7 @@ async function irExportPDF() {
 
     const container = document.createElement("div");
     container.innerHTML = html;
-    document.body.appendChild(container);  // temporarily attach
+    document.body.appendChild(container);
 
     const opt = {
         margin: 0.6,
@@ -932,13 +790,9 @@ async function irExportPDF() {
     };
 
     await html2pdf().set(opt).from(container).save();
-
     container.remove();
 }
 
-/* ------------------------------------------------------------
-   EXPORT WORD (.docx)
------------------------------------------------------------- */
 async function irExportWord() {
     if (!IR_USER) {
         alert("Please sign in to generate a report.");
@@ -968,135 +822,39 @@ async function irExportWord() {
     a.href = URL.createObjectURL(blob);
     a.download = `Incident_Report_${Date.now()}.docx`;
     a.click();
-
     URL.revokeObjectURL(a.href);
 }
 </script>
 <script>
 /* ============================================================
-      SECTION INTEGRATION FOR INCIDENT REPORT TOOL
-   ============================================================ */
+   FINAL INITIALIZATION — RUNS ON PAGE LOAD
+============================================================ */
 
-/* 1️⃣ — Add the new tool into SECTIONS[] */
-const SECTIONS = ["home", "tools", "bulk-email", "report-formatter", "about"];
-
-
-/* 2️⃣ — Patch showSection() to support the new tool */
-function showSection(id) {
-    SECTIONS.forEach(secId => {
-        const el = document.getElementById(secId);
-        if (!el) return;
-        if (secId === id) el.classList.remove("hidden-section");
-        else el.classList.add("hidden-section");
-    });
-
-    // Scroll to top for all sections
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    // Adjust bubble opacity
-    const bubbleContainer = document.getElementById("bubble-container");
-    if (bubbleContainer) {
-        bubbleContainer.style.opacity = (id === "home") ? "1" : "0.35";
-    }
-
-    // Handle Bulk Email sign-in rendering
-    if (id === "bulk-email") {
-        initGoogleButton();
-        setupPerformaDrag();
-        setupAttachmentDragDrop();
-        updateSendButton();
-        updateQuotaDisplay();
-    }
-
-    // Handle Incident Report Formatter activation
-    if (id === "report-formatter") {
-        irActivateSection();     // <— VERY IMPORTANT
-        irInitGoogleButton();    // Ensures login button is rendered
-        irUpdatePreview();       // Render preview immediately
-    }
-}
-</script>
-<!-- =======================
-        ABOUT ME
-======================= -->
-<section id="about" class="hidden-section fade-in min-h-[80vh] py-12">
-
-    <p class="text-bubble-teal text-sm font-mono tracking-widest mb-4">THE FOUNDER</p>
-    <h2 class="text-4xl font-extrabold mb-10">Who is officeworkhelp.in?</h2>
-
-    <div class="grid md:grid-cols-3 gap-12 items-center">
-
-        <!-- PROFILE IMAGE -->
-        <div class="flex justify-center">
-          <div class="relative h-40 w-40 sm:h-52 sm:w-52 rounded-full overflow-hidden border border-cyan-400/40 shadow-[0_0_30px_rgba(34,211,238,0.45)]">
-            <img 
-              src="https://lh3.googleusercontent.com/d/1LNKUmmTxJUx9NAE2UgNQDNAHesgFJrHD"
-              alt="Chetan Sharma"
-              class="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-
-        <!-- TEXT -->
-        <div class="md:col-span-2 space-y-5 text-gray-300 text-lg">
-
-            <p>
-                Hello! I’m the creator of officeworkhelp.in.
-                After years of seeing smart people waste 50% of their day on repetitive office tasks,
-                I decided to solve this problem through automation.
-            </p>
-
-            <p>
-                My mission is simple:
-                <strong class="text-bubble-teal">Help hard-working people achieve smart work through automation.</strong>
-            </p>
-
-            <a href="https://www.linkedin.com/in/chetan-sharma-4570a1100/" target="_blank"
-                class="inline-block px-6 py-2 rounded-lg bg-bubble-teal/20 text-bubble-teal 
-                       border border-bubble-teal hover:bg-bubble-teal hover:text-black transition font-semibold">
-                Connect on LinkedIn →
-            </a>
-
-        </div>
-    </div>
-</section>
-
-</main>
-
-<!-- FOOTER -->
-<footer class="mt-12 border-t border-gray-800 py-4 text-center text-xs text-gray-500">
-    © 2025 officeworkhelp.in · Helping hard work meet smart work.
-</footer>
-
-<!-- SUCCESS SOUND -->
-<audio id="successSound">
-    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
-</audio>
-
-<script>
-/* ============================================================
-      FINAL INITIALIZATION — RUNS ON PAGE LOAD
-   ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
-
-    // Default section: home
+    // Default section
     showSection("home");
 
-    // Floating background bubbles
+    // Background
     spawnBubbles();
-
-    // Dropdown hybrid behavior
     setupDropdown();
 
-    // Initialize Google buttons (bulk + incident)
+    // Google buttons (each tool)
     initGoogleButton();
     irInitGoogleButton();
 
-    // Setup file drag & drop for Bulk Email
+    // Bulk Email setup
     setupPerformaDrag();
     setupAttachmentDragDrop();
+    updateQuotaDisplay();
 
-    // Setup Report Formatter input listeners
+    // Update send button when subject/body change
+    document.addEventListener("input", (e) => {
+        if (e.target.id === "subject" || e.target.id === "editor") {
+            updateSendButton();
+        }
+    });
+
+    // Incident Report inputs live-preview
     document.addEventListener("input", (e) => {
         const IR_FIELDS = [
             "ir-summary", "ir-datetime", "ir-location", "ir-persons",
@@ -1106,10 +864,35 @@ document.addEventListener("DOMContentLoaded", () => {
         if (IR_FIELDS.includes(e.target.id)) irUpdatePreview();
     });
 
-    // Update daily quota display for Bulk Email
-    updateQuotaDisplay();
+    // Incident Report photos change
+    const photoInput = document.getElementById("ir-photos");
+    if (photoInput) {
+        photoInput.addEventListener("change", function () {
+            IR_PHOTOS = [];
+            const preview = document.getElementById("ir-photo-list");
+            if (!preview) return;
+            preview.innerHTML = "";
+
+            Array.from(this.files).forEach(file => {
+                const url = URL.createObjectURL(file);
+                const container = document.createElement("div");
+                container.className = "bg-gray-900 p-3 rounded-lg border border-gray-700";
+
+                container.innerHTML = `
+                    <img src="${url}" class="w-full max-h-40 object-cover rounded mb-2 border border-gray-800">
+                    <input type="text" class="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-gray-300"
+                           placeholder="Caption for this photo">
+                `;
+                preview.appendChild(container);
+
+                IR_PHOTOS.push({
+                    url,
+                    captionInput: container.querySelector("input")
+                });
+            });
+
+            irUpdatePreview();
+        });
+    }
 });
 </script>
-
-</body>
-</html>

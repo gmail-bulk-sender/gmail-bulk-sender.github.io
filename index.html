@@ -122,9 +122,7 @@ body {
 }
 </style>
 </head>
-
 <body class="antialiased">
-
 <!-- FLOATING BUBBLES -->
 <div id="bubble-container" class="fixed inset-0 overflow-hidden pointer-events-none -z-10"></div>
 
@@ -164,7 +162,6 @@ body {
                         Bulk Email Sender
                     </div>
 
-                    <!-- Report Formatter now active -->
                     <div class="dropdown-item"
                         onclick="showSection('report-formatter'); closeDropdown();">
                         Incident Report Formatter
@@ -184,6 +181,7 @@ body {
 
     </div>
 </header>
+
 
 <!-- MAIN CONTENT -->
 <main class="max-w-6xl mx-auto px-6 pt-12">
@@ -208,6 +206,7 @@ body {
     </button>
 </section>
 
+
 <!-- =======================
        TOOLS DIRECTORY
 ======================= -->
@@ -229,13 +228,13 @@ body {
             <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
         </div>
 
-        <!-- Report Formatter Tool Card (ACTIVE) -->
+        <!-- Incident Report Formatter Tool Card (NEW) -->
         <div onclick="showSection('report-formatter')"
             class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl cursor-pointer 
                    hover:border-bubble-teal transition hover:shadow-lg hover:shadow-bubble-teal/10">
             <h3 class="text-2xl font-bold text-bubble-teal mb-2">Incident Report Formatter</h3>
             <p class="text-gray-400 mb-4 text-sm">
-                Turn rough incident notes and photos into clean, formal reports.
+                Convert rough statements + photos into a formal authenticated incident report.
             </p>
             <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
         </div>
@@ -248,9 +247,6 @@ body {
 
     </div>
 </section>
-
-
-
 <!-- =======================
    BULK EMAIL SENDER TOOL
 ======================= -->
@@ -366,181 +362,650 @@ body {
         </div>
     </div>
 </section>
-
-
-
 <!-- =======================
-   INCIDENT REPORT FORMATTER
+   INCIDENT REPORT FORMATTER (NEW)
 ======================= -->
-<section id="report-formatter" class="hidden-section fade-in min-h-[80vh] pb-10">
+<section id="report-formatter" class="hidden-section fade-in min-h-[80vh]">
 
-    <div class="mb-8">
+    <div class="mb-10">
         <p class="text-gray-400 text-sm mb-1">
             <span class="hover:text-bubble-teal cursor-pointer" onclick="showSection('tools')">Tools</span>
             / Incident Report Formatter
         </p>
         <h2 class="text-4xl font-extrabold text-bubble-teal">Incident Report Formatter</h2>
-        <p class="text-gray-400 max-w-3xl mt-2 text-sm sm:text-base">
-            Fill the incident details on the left. A clean, formal report will appear on the right,
-            ready to download as PDF or editable Word.
+        <p class="text-gray-400 max-w-3xl mt-2">
+            Generate a professional, authenticated incident report with photos, event descriptions, and auto-formalized language.
         </p>
     </div>
 
-    <div class="grid lg:grid-cols-2 gap-6 items-stretch">
+    <!-- ========== LOGIN REQUIRED ========== -->
+    <div id="ir-login-gate"
+         class="bg-gray-800/60 border border-gray-700 rounded-xl p-6 text-center mb-8">
+        <h3 class="text-xl font-bold text-bubble-teal mb-3">Sign in to Access This Tool</h3>
+        <p class="text-gray-400 text-sm mb-4">
+            Authentication is mandatory. Every report will include a verified Google identity block.
+        </p>
 
-        <!-- LEFT: FORM -->
-        <div class="bg-gray-800/60 border border-gray-700 rounded-xl p-5 space-y-4 overflow-y-auto max-h-[75vh]">
+        <div id="ir-google-signin"></div>
 
-            <div>
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Incident Summary
-                </label>
-                <input id="inc-summary" type="text"
-                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                    placeholder="Short title of the incident"
-                    oninput="updateIncidentPreview()" />
-            </div>
-
-            <div class="grid sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-200 mb-1">
-                        Date &amp; Time of Incident
-                    </label>
-                    <input id="inc-datetime" type="datetime-local"
-                        class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                        onchange="updateIncidentPreview()" />
-                    <p class="text-xs text-gray-500 mt-1">
-                        Used to generate a formal timestamp (e.g., “At approximately 1600 hours on 5 Dec 2025…”)
-                    </p>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-200 mb-1">
-                        Location
-                    </label>
-                    <input id="inc-location" type="text"
-                        class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                        placeholder="Example: Main Gate, Office Campus"
-                        oninput="updateIncidentPreview()" />
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Persons Involved
-                </label>
-                <textarea id="inc-persons"
-                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                    placeholder="List names, designations, IDs, contact details if needed."
-                    rows="3"
-                    oninput="updateIncidentPreview()"></textarea>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Description of Events (rough notes)
-                </label>
-                <textarea id="inc-description-rough"
-                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                    placeholder="Write what happened in your own words. The tool will convert this into simple formal language."
-                    rows="5"
-                    oninput="updateIncidentPreview()"></textarea>
-                <p class="text-xs text-gray-500 mt-1">
-                    Example: “At around 4 pm two guys were arguing near the gate. Then one pushed the other and he fell. We separated them.”
-                </p>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Actions Taken
-                </label>
-                <textarea id="inc-actions"
-                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                    rows="3"
-                    oninput="updateIncidentPreview()"
-                    placeholder="Immediate response, escalation, medical support, reporting, etc."></textarea>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Injuries / Damage
-                </label>
-                <textarea id="inc-injuries"
-                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                    rows="3"
-                    oninput="updateIncidentPreview()"
-                    placeholder="Describe any injuries, damage to property, or ‘None reported’."></textarea>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Witness Statements
-                </label>
-                <textarea id="inc-witness"
-                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                    rows="3"
-                    oninput="updateIncidentPreview()"
-                    placeholder="Names of witnesses and brief summary of their statements."></textarea>
-            </div>
-
-            <div>
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Name / Signature / Reporting Officer Details
-                </label>
-                <textarea id="inc-officer"
-                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
-                    rows="2"
-                    oninput="updateIncidentPreview()"
-                    placeholder="Name, designation, ID, contact, signature line."></textarea>
-            </div>
-
-            <!-- Photos -->
-            <div class="pt-2">
-                <label class="block text-sm font-semibold text-gray-200 mb-1">
-                    Supporting Photos (with captions)
-                </label>
-                <input id="inc-photos" type="file" multiple accept="image/*"
-                    class="block w-full text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3
-                           file:rounded-lg file:border-0 file:text-sm file:font-semibold
-                           file:bg-bubble-teal/20 file:text-bubble-teal hover:file:bg-bubble-teal hover:file:text-black"
-                    onchange="handleIncidentPhotoUpload(event)" />
-                <p class="text-xs text-gray-500 mt-1">
-                    You can add short captions for each photo. These will appear below the images in the report.
-                </p>
-
-                <div id="inc-photo-list" class="mt-3 space-y-3 max-h-48 overflow-y-auto pr-1"></div>
-            </div>
-
-        </div>
-
-        <!-- RIGHT: PREVIEW -->
-        <div class="bg-gray-900/60 border border-gray-700 rounded-xl flex flex-col max-h-[75vh]">
-
-            <div class="border-b border-gray-800 px-5 py-3 flex items-center justify-between">
-                <h3 class="text-sm font-semibold text-gray-200">
-                    Live Incident Report Preview
-                </h3>
-                <div class="flex gap-2">
-                    <button onclick="downloadIncidentPDF()"
-                        class="px-3 py-1.5 rounded-lg bg-bubble-teal/20 text-xs text-bubble-teal border border-bubble-teal hover:bg-bubble-teal hover:text-black">
-                        Download PDF
-                    </button>
-                    <button onclick="downloadIncidentWord()"
-                        class="px-3 py-1.5 rounded-lg bg-gray-800 text-xs text-gray-200 border border-gray-700 hover:border-bubble-teal">
-                        Download Word
-                    </button>
-                </div>
-            </div>
-
-            <div id="incident-report-preview"
-                 class="flex-1 overflow-y-auto px-5 py-4 text-sm leading-relaxed bg-gray-950/50">
-                <!-- Filled by JS -->
-            </div>
-        </div>
+        <p id="ir-login-status" class="text-sm text-gray-400 mt-3"></p>
     </div>
+
+    <!-- ========== USER INFO AFTER LOGIN ========== -->
+    <div id="ir-user-info"
+         class="hidden bg-gray-800/40 border border-gray-700 rounded-xl p-4 flex items-center gap-4 mb-8">
+        <img id="ir-user-photo" src="" class="w-12 h-12 rounded-full border border-gray-700" />
+        <div>
+            <p id="ir-user-name" class="font-semibold text-gray-200"></p>
+            <p id="ir-user-email" class="text-sm text-gray-400"></p>
+        </div>
+
+        <button onclick="irLogout()"
+            class="ml-auto px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700">
+            Logout
+        </button>
+    </div>
+
+    <!-- ========== MAIN TOOL UI (LOCKED until login) ========== -->
+    <div id="ir-tool-container" class="hidden grid lg:grid-cols-2 gap-8 items-start">
+
+        <!-- =======================
+              LEFT PANEL — FORM
+        ======================== -->
+        <div class="bg-gray-800/40 border border-gray-700 rounded-xl p-6 space-y-6">
+
+            <!-- INCIDENT SUMMARY -->
+            <div>
+                <label class="font-semibold text-gray-300">Incident Summary</label>
+                <input id="ir-summary" type="text"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
+                       placeholder="Short high-level summary">
+            </div>
+
+            <!-- DATE & TIME -->
+            <div>
+                <label class="font-semibold text-gray-300">Date & Time of Incident</label>
+                <input id="ir-datetime" type="datetime-local"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg">
+            </div>
+
+            <!-- LOCATION -->
+            <div>
+                <label class="font-semibold text-gray-300">Location</label>
+                <input id="ir-location" type="text"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg">
+            </div>
+
+            <!-- PERSONS INVOLVED -->
+            <div>
+                <label class="font-semibold text-gray-300">Persons Involved</label>
+                <textarea id="ir-persons" rows="3"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
+                       placeholder="List individuals involved, separated by commas"></textarea>
+            </div>
+
+            <!-- DESCRIPTION (ROUGH STATEMENT) -->
+            <div>
+                <label class="font-semibold text-gray-300">
+                    Description of Events (Rough Statement)
+                </label>
+                <textarea id="ir-description-raw" rows="5"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
+                       placeholder="Enter the unformatted description here..."></textarea>
+            </div>
+
+            <!-- ACTIONS TAKEN -->
+            <div>
+                <label class="font-semibold text-gray-300">Actions Taken</label>
+                <textarea id="ir-actions" rows="3"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"></textarea>
+            </div>
+
+            <!-- INJURIES OR DAMAGE -->
+            <div>
+                <label class="font-semibold text-gray-300">Injuries / Damage</label>
+                <textarea id="ir-damage" rows="3"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"></textarea>
+            </div>
+
+            <!-- WITNESS STATEMENTS -->
+            <div>
+                <label class="font-semibold text-gray-300">Witness Statements</label>
+                <textarea id="ir-witness" rows="3"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"></textarea>
+            </div>
+
+            <!-- SUPPORTING PHOTOS -->
+            <div>
+                <label class="font-semibold text-gray-300">Supporting Photos</label>
+                <input id="ir-photos" type="file" accept="image/*" multiple
+                       class="w-full mt-1 text-gray-400">
+                <p class="text-xs text-gray-500 mt-1">You can upload multiple images. Each will allow captions.</p>
+
+                <div id="ir-photo-list"
+                     class="mt-3 space-y-3"></div>
+            </div>
+
+            <!-- REPORTING OFFICER -->
+            <div>
+                <label class="font-semibold text-gray-300">Reporting Officer Details</label>
+                <input id="ir-officer" type="text"
+                       class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg"
+                       placeholder="Officer name / badge / designation">
+            </div>
+
+        </div>
+
+        <!-- =======================
+              RIGHT PANEL — LIVE PREVIEW
+        ======================== -->
+        <div class="bg-gray-800/40 border border-gray-700 rounded-xl p-6">
+
+            <h3 class="text-lg font-bold text-bubble-teal mb-4">
+                Live Preview (Auto-formatted)
+            </h3>
+
+            <div id="ir-preview"
+                 class="bg-gray-900 border border-gray-700 rounded-lg p-6 text-gray-300 text-sm leading-relaxed space-y-3"
+                 style="max-height: 70vh; overflow-y: auto;">
+                 <!-- Dynamic report preview goes here -->
+            </div>
+
+            <div class="flex gap-4 mt-6">
+                <button onclick="irExportPDF()"
+                    class="px-4 py-2 bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
+                           hover:bg-bubble-teal hover:text-black transition rounded-lg">
+                    Export PDF
+                </button>
+
+                <button onclick="irExportWord()"
+                    class="px-4 py-2 bg-gray-700 text-gray-300 border border-gray-600 
+                           hover:bg-gray-600 transition rounded-lg">
+                    Export Word (.docx)
+                </button>
+            </div>
+
+        </div>
+
+    </div> <!-- END TOOL CONTAINER -->
+
 </section>
+<!-- =======================
+   INCIDENT REPORT AUTH BLOCK (AUTO-INJECTED)
+   WATERMARK PLACEHOLDERS (AUTO-INJECTED)
+======================= -->
+
+<!-- This block is invisible; JS inserts real values into #ir-preview -->
+<div id="ir-auth-template" class="hidden">
+    <div class="mt-6 p-4 border border-gray-800 bg-black/20 rounded">
+        <h4 class="font-semibold text-xs tracking-wider text-gray-400 uppercase mb-2">
+            Authenticated User
+        </h4>
+        <p class="text-gray-300 text-sm">
+            <strong>Name:</strong> <span id="auth-name-slot"></span><br>
+            <strong>Email:</strong> <span id="auth-email-slot"></span><br>
+            <strong>Google ID:</strong> <span id="auth-id-slot"></span><br>
+            <strong>Login Time:</strong> <span id="auth-time-slot"></span>
+        </p>
+    </div>
+</div>
+
+<!-- Invisible watermark container -->
+<div id="ir-watermark-template" class="hidden">
+    <div class="text-[9px] text-gray-500 opacity-70 text-right mt-4">
+        <span id="wm-line1">Verified Report • officeworkhelp.in</span><br>
+        <span id="wm-line2">AuthSig: <span id="wm-sig"></span></span>
+    </div>
+</div>
+
+<!-- Watermark HTML comment (hidden in export too) -->
+<div id="ir-watermark-comment" class="hidden">
+    <!-- AUTH_SIG:{SIG};UIDC:{UIDC};TS:{TS} -->
+</div>
+<script>
+/* ============================================================
+      INCIDENT REPORT — AUTH SYSTEM (MANDATORY LOGIN)
+   ============================================================ */
+
+let IR_USER = null;        // Stores name, email, picture, googleID
+let IR_LOGIN_TIME = null;  // JS Date object
+let IR_AUTH_SIG = null;    // cryptographic watermark signature
+
+/* -------------------------------
+   Render Google Sign-In Button
+-------------------------------- */
+function irInitGoogleButton() {
+    const container = document.getElementById("ir-google-signin");
+    if (!container) return;
+
+    // Prevent multiple renders
+    if (container.childElementCount > 0) return;
+
+    google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: irHandleLogin
+    });
+
+    google.accounts.id.renderButton(container, {
+        theme: "outline",
+        size: "large",
+        width: 250
+    });
+}
+
+/* -------------------------------
+   Parse Google ID JWT Token
+-------------------------------- */
+function irParseJWT(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+        '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join(''));
+
+    return JSON.parse(jsonPayload);
+}
+
+/* -------------------------------
+   Handle Login Success
+-------------------------------- */
+function irHandleLogin(response) {
+    const jwt = irParseJWT(response.credential);
+
+    IR_USER = {
+        name: jwt.name,
+        email: jwt.email,
+        picture: jwt.picture,
+        id: jwt.sub
+    };
+
+    IR_LOGIN_TIME = new Date();
+
+    // Update UI
+    document.getElementById("ir-login-gate").classList.add("hidden");
+    document.getElementById("ir-user-info").classList.remove("hidden");
+
+    document.getElementById("ir-user-name").textContent = IR_USER.name;
+    document.getElementById("ir-user-email").textContent = IR_USER.email;
+    document.getElementById("ir-user-photo").src = IR_USER.picture;
+
+    // Unlock the main tool container
+    document.getElementById("ir-tool-container").classList.remove("hidden");
+
+    // Update preview immediately
+    irUpdatePreview();
+}
+
+/* -------------------------------
+   Logout Handler
+-------------------------------- */
+function irLogout() {
+    IR_USER = null;
+    IR_LOGIN_TIME = null;
+    IR_AUTH_SIG = null;
+
+    document.getElementById("ir-user-info").classList.add("hidden");
+    document.getElementById("ir-login-gate").classList.remove("hidden");
+
+    // Lock tool again
+    document.getElementById("ir-tool-container").classList.add("hidden");
+
+    // Clear preview
+    document.getElementById("ir-preview").innerHTML = "";
+}
+
+/* -------------------------------
+   Section activation logic
+-------------------------------- */
+function irActivateSection() {
+    irInitGoogleButton();
+
+    if (!IR_USER) {
+        // Force login
+        document.getElementById("ir-login-gate").classList.remove("hidden");
+        document.getElementById("ir-user-info").classList.add("hidden");
+        document.getElementById("ir-tool-container").classList.add("hidden");
+    } else {
+        // Logged-in: show tool
+        document.getElementById("ir-login-gate").classList.add("hidden");
+        document.getElementById("ir-user-info").classList.remove("hidden");
+        document.getElementById("ir-tool-container").classList.remove("hidden");
+    }
+
+    // Always update preview when entering the section
+    irUpdatePreview();
+}
+</script>
+<script>
+/* ============================================================
+      INCIDENT REPORT — FORMAL LANGUAGE ENGINE & PREVIEW
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. FORMAL LANGUAGE TRANSFORMER
+      Converts rough text into professional report language.
+------------------------------------------------------------ */
+function irFormalizeText(raw) {
+    if (!raw || raw.trim().length === 0) return "";
+
+    let text = raw.trim();
+
+    // Ensure starts with uppercase
+    text = text.charAt(0).toUpperCase() + text.slice(1);
+
+    // Replace casual language patterns
+    text = text.replace(/\bgot\b/gi, "received")
+               .replace(/\bgive\b/gi, "provided")
+               .replace(/\bwe saw\b/gi, "it was observed that")
+               .replace(/\bsaw\b/gi, "observed")
+               .replace(/\bmet\b/gi, "encountered")
+               .replace(/\bhit\b/gi, "struck")
+               .replace(/\bbeat\b/gi, "assaulted")
+               .replace(/\bpush(ed)?\b/gi, "pushed");
+
+    // Add period if missing
+    if (!/[.!?]$/.test(text)) text += ".";
+
+    return text;
+}
 
 
+/* ------------------------------------------------------------
+   2. PHOTO HANDLING (upload + caption inputs)
+------------------------------------------------------------ */
+let IR_PHOTOS = [];  // Each element: { url, caption }
 
+document.getElementById("ir-photos").addEventListener("change", function () {
+    IR_PHOTOS = [];
+
+    const preview = document.getElementById("ir-photo-list");
+    preview.innerHTML = "";
+
+    Array.from(this.files).forEach(file => {
+        const url = URL.createObjectURL(file);
+
+        const container = document.createElement("div");
+        container.className = "bg-gray-900 p-3 rounded-lg border border-gray-700";
+
+        container.innerHTML = `
+            <img src="${url}" class="w-full max-h-40 object-cover rounded mb-2 border border-gray-800">
+            <input type="text" class="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded text-sm text-gray-300"
+                   placeholder="Caption for this photo">
+        `;
+
+        preview.appendChild(container);
+
+        IR_PHOTOS.push({
+            url,
+            captionInput: container.querySelector("input")
+        });
+    });
+
+    irUpdatePreview();
+});
+
+
+/* ------------------------------------------------------------
+   3. MAIN PREVIEW RENDERER
+------------------------------------------------------------ */
+function irUpdatePreview() {
+    const p = document.getElementById("ir-preview");
+    if (!p) return;
+
+    // If not logged in → show nothing
+    if (!IR_USER) {
+        p.innerHTML = "<p class='text-gray-500 text-sm'>Please sign in to start filling the report.</p>";
+        return;
+    }
+
+    /* Collect Inputs */
+    const summary        = document.getElementById("ir-summary").value.trim();
+    const datetime       = document.getElementById("ir-datetime").value.trim();
+    const location       = document.getElementById("ir-location").value.trim();
+    const persons        = document.getElementById("ir-persons").value.trim();
+    const rawDescription = document.getElementById("ir-description-raw").value.trim();
+    const actions        = document.getElementById("ir-actions").value.trim();
+    const damage         = document.getElementById("ir-damage").value.trim();
+    const witness        = document.getElementById("ir-witness").value.trim();
+    const officer        = document.getElementById("ir-officer").value.trim();
+
+    const description = irFormalizeText(rawDescription);
+
+    /* AUTH BLOCK TEMPLATE */
+    const authBlock = `
+        <div class="mt-6 p-4 border border-gray-800 bg-black/20 rounded">
+            <h4 class="font-semibold text-xs tracking-wider text-gray-400 uppercase mb-2">Authenticated User</h4>
+            <p class="text-gray-300 text-sm">
+                <strong>Name:</strong> ${IR_USER.name}<br>
+                <strong>Email:</strong> ${IR_USER.email}<br>
+                <strong>Google ID:</strong> ${IR_USER.id}<br>
+                <strong>Login Time:</strong> ${IR_LOGIN_TIME.toLocaleString()}
+            </p>
+        </div>
+    `;
+
+    /* BUILD PHOTOS SECTION */
+    let photosHTML = "";
+    IR_PHOTOS.forEach((pObj, idx) => {
+        const caption = pObj.captionInput.value || `Photo ${idx + 1}`;
+        photosHTML += `
+            <div class="mt-4">
+                <img src="${pObj.url}" class="rounded border border-gray-800 max-h-64 w-full object-cover mb-1">
+                <p class="text-xs text-gray-400 italic">${caption}</p>
+            </div>
+        `;
+    });
+
+    /* ========== COMPLEX WATERMARK (TEXT PORTION) ========== */
+    const uidFrag = IR_USER.id.slice(-4);
+    const ts = Date.now().toString();
+    const random = Math.floor(Math.random() * 999999).toString();
+    const rawSig = uidFrag + "|" + ts + "|" + random;
+
+    // TEMP signature — real SHA-256 done in PART 8
+    IR_AUTH_SIG = btoa(rawSig).slice(0, 24);
+
+    const watermarkHTML = `
+        <div class="text-[9px] text-gray-500 opacity-70 text-right mt-4">
+            Verified Report • officeworkhelp.in<br>
+            AuthSig: ${IR_AUTH_SIG}
+        </div>
+    `;
+
+    /* ========== BUILD FULL REPORT HTML ========== */
+    p.innerHTML = `
+        <h2 class="text-xl font-bold text-white mb-4">Incident Report</h2>
+
+        <p><strong>Incident Summary:</strong> ${summary || "-"}</p>
+        <p><strong>Date & Time:</strong> ${datetime || "-"}</p>
+        <p><strong>Location:</strong> ${location || "-"}</p>
+        <p><strong>Persons Involved:</strong> ${persons || "-"}</p>
+
+        <p class="mt-4"><strong>Description of Events:</strong><br>${description || "-"}</p>
+
+        <p class="mt-4"><strong>Actions Taken:</strong><br>${actions || "-"}</p>
+
+        <p class="mt-4"><strong>Injuries / Damage:</strong><br>${damage || "-"}</p>
+
+        <p class="mt-4"><strong>Witness Statements:</strong><br>${witness || "-"}</p>
+
+        ${photosHTML}
+
+        ${authBlock}
+        ${watermarkHTML}
+
+        <p class="mt-6"><strong>Reporting Officer:</strong> ${officer || "-"}</p>
+    `;
+}
+
+
+/* ------------------------------------------------------------
+   4. Trigger preview on ANY input change
+------------------------------------------------------------ */
+document.addEventListener("input", function (e) {
+    const fields = [
+        "ir-summary", "ir-datetime", "ir-location", "ir-persons",
+        "ir-description-raw", "ir-actions", "ir-damage",
+        "ir-witness", "ir-officer"
+    ];
+    if (fields.includes(e.target.id)) irUpdatePreview();
+});
+</script>
+<script>
+/* ============================================================
+      INCIDENT REPORT — EXPORT ENGINE (PDF + WORD + HASH)
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   SHA-256 HASH (browser-native)
+------------------------------------------------------------ */
+async function irSHA256(str) {
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* ------------------------------------------------------------
+   BUILD COMPLETE RAW REPORT HTML (for export only)
+------------------------------------------------------------ */
+async function irBuildExportHTML() {
+    if (!IR_USER) return "";
+
+    const preview = document.getElementById("ir-preview").innerHTML;
+
+    /* Build a high-entropy watermark signature */
+    const salt = Math.random().toString(36).substring(2, 12);
+    const ts = Date.now().toString();
+    const data = IR_USER.email + "|" + IR_USER.id + "|" + ts + "|" + salt;
+
+    const hash = await irSHA256(data);
+    IR_AUTH_SIG = hash.substring(0, 32);      // Strong 256-bit derived sig
+    const uidc = IR_USER.id.slice(-4);
+
+    /* Invisible watermark comment */
+    const hiddenComment = `
+        <!-- AUTH_SIG:${IR_AUTH_SIG};UIDC:${uidc};TS:${ts};SALT:${salt} -->
+    `;
+
+    return `
+        <div style="font-family: Inter, sans-serif; color: #222; line-height: 1.5;">
+            ${preview}
+            <div style="font-size: 9px; text-align: right; opacity: .6; margin-top: 20px;">
+                Verified Report • officeworkhelp.in<br>
+                AuthSig: ${IR_AUTH_SIG}
+            </div>
+        </div>
+        ${hiddenComment}
+    `;
+}
+
+/* ------------------------------------------------------------
+   EXPORT PDF — html2pdf.js
+------------------------------------------------------------ */
+async function irExportPDF() {
+    if (!IR_USER) {
+        alert("Please sign in to generate a report.");
+        return;
+    }
+
+    const html = await irBuildExportHTML();
+
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    document.body.appendChild(container);  // temporarily attach
+
+    const opt = {
+        margin: 0.6,
+        filename: `Incident_Report_${Date.now()}.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "in", format: "a4", orientation: "portrait" }
+    };
+
+    await html2pdf().set(opt).from(container).save();
+
+    container.remove();
+}
+
+/* ------------------------------------------------------------
+   EXPORT WORD (.docx)
+------------------------------------------------------------ */
+async function irExportWord() {
+    if (!IR_USER) {
+        alert("Please sign in to generate a report.");
+        return;
+    }
+
+    const html = await irBuildExportHTML();
+
+    const header =
+        `<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Incident Report</title>
+        </head>
+        <body>`;
+
+    const footer = `</body></html>`;
+
+    const fullHTML = header + html + footer;
+
+    const blob = new Blob([fullHTML], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    });
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `Incident_Report_${Date.now()}.docx`;
+    a.click();
+
+    URL.revokeObjectURL(a.href);
+}
+</script>
+<script>
+/* ============================================================
+      SECTION INTEGRATION FOR INCIDENT REPORT TOOL
+   ============================================================ */
+
+/* 1️⃣ — Add the new tool into SECTIONS[] */
+const SECTIONS = ["home", "tools", "bulk-email", "report-formatter", "about"];
+
+
+/* 2️⃣ — Patch showSection() to support the new tool */
+function showSection(id) {
+    SECTIONS.forEach(secId => {
+        const el = document.getElementById(secId);
+        if (!el) return;
+        if (secId === id) el.classList.remove("hidden-section");
+        else el.classList.add("hidden-section");
+    });
+
+    // Scroll to top for all sections
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    // Adjust bubble opacity
+    const bubbleContainer = document.getElementById("bubble-container");
+    if (bubbleContainer) {
+        bubbleContainer.style.opacity = (id === "home") ? "1" : "0.35";
+    }
+
+    // Handle Bulk Email sign-in rendering
+    if (id === "bulk-email") {
+        initGoogleButton();
+        setupPerformaDrag();
+        setupAttachmentDragDrop();
+        updateSendButton();
+        updateQuotaDisplay();
+    }
+
+    // Handle Incident Report Formatter activation
+    if (id === "report-formatter") {
+        irActivateSection();     // <— VERY IMPORTANT
+        irInitGoogleButton();    // Ensures login button is rendered
+        irUpdatePreview();       // Render preview immediately
+    }
+}
+</script>
 <!-- =======================
         ABOUT ME
 ======================= -->
@@ -552,15 +1017,16 @@ body {
     <div class="grid md:grid-cols-3 gap-12 items-center">
 
         <!-- PROFILE IMAGE -->
-       <div class="flex justify-center">
-  <div class="relative h-40 w-40 sm:h-52 sm:w-52 rounded-full overflow-hidden border border-cyan-400/40 shadow-[0_0_30px_rgba(34,211,238,0.45)]">
-    <img 
-      src="https://lh3.googleusercontent.com/d/1LNKUmmTxJUx9NAE2UgNQDNAHesgFJrHD"
-      alt="Chetan Sharma"
-      class="w-full h-full object-cover"
-    />
-  </div>
-</div>
+        <div class="flex justify-center">
+          <div class="relative h-40 w-40 sm:h-52 sm:w-52 rounded-full overflow-hidden border border-cyan-400/40 shadow-[0_0_30px_rgba(34,211,238,0.45)]">
+            <img 
+              src="https://lh3.googleusercontent.com/d/1LNKUmmTxJUx9NAE2UgNQDNAHesgFJrHD"
+              alt="Chetan Sharma"
+              class="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
         <!-- TEXT -->
         <div class="md:col-span-2 space-y-5 text-gray-300 text-lg">
 
@@ -584,6 +1050,7 @@ body {
         </div>
     </div>
 </section>
+
 </main>
 
 <!-- FOOTER -->
@@ -597,820 +1064,40 @@ body {
 </audio>
 
 <script>
-/* ========= GLOBAL CONFIG ========= */
-const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
-const SCRIPT_WEBAPP_URL =
-  "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
-
-let accessToken = null;
-let sheetRows = [];
-let failedRows = [];
-let sending = false;
-
-/* 🔴 ADD NEW SECTION ID HERE */
-const SECTIONS = ["home", "tools", "bulk-email", "report-formatter", "about"];
-
-/* ========= SECTION SWITCHING ========= */
-function showSection(id) {
-    SECTIONS.forEach(secId => {
-        const el = document.getElementById(secId);
-        if (!el) return;
-        if (secId === id) el.classList.remove("hidden-section");
-        else el.classList.add("hidden-section");
-    });
-
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: "smooth" });
-
-    // Only show strong bubbles on home, dim elsewhere
-    const bubbleContainer = document.getElementById("bubble-container");
-    if (bubbleContainer) {
-        if (id === "home") {
-            bubbleContainer.style.opacity = "1";
-        } else {
-            bubbleContainer.style.opacity = "0.35";
-        }
-    }
-
-    // When entering Bulk Email section, ensure Google Sign-In is visible & drag/drop is wired
-    if (id === "bulk-email") {
-        initGoogleButton();
-        setupPerformaDrag();
-        setupAttachmentDragDrop();
-        updateSendButton();
-        updateQuotaDisplay();
-    }
-
-    // When entering Report Formatter, ensure preview is synced
-    if (id === "report-formatter") {
-        updateIncidentPreview();
-    }
-}
-
-/* ========= FLOATING BUBBLES BACKGROUND ========= */
-function spawnBubbles() {
-    const container = document.getElementById("bubble-container");
-    if (!container) return;
-
-    const bubbleCount = 14;
-
-    for (let i = 0; i < bubbleCount; i++) {
-        const b = document.createElement("div");
-        b.className = "bubble";
-
-        const size = 80 + Math.random() * 180; // 80-260px
-        const left = Math.random() * 100;      // 0-100vw
-        const delay = Math.random() * 15;      // 0-15s
-        const duration = 16 + Math.random() * 12; // 16-28s
-        const hue = 170 + Math.random() * 40;  // teal/blue hue
-
-        b.style.width = size + "px";
-        b.style.height = size + "px";
-        b.style.left = left + "vw";
-        b.style.bottom = "-260px";
-        b.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.7), hsla(${hue}, 80%, 30%, 0.1))`;
-        b.style.animationDuration = duration + "s";
-        b.style.animationDelay = delay + "s";
-
-        container.appendChild(b);
-    }
-}
-
-/* ========= HYBRID TOOLS DROPDOWN (HOVER + CLICK) ========= */
-function setupDropdown() {
-    const toolsBtn = document.getElementById("toolsBtn");
-    const dropdown = document.getElementById("toolsDropdown");
-    if (!toolsBtn || !dropdown) return;
-
-    function toggleDropdown() {
-        // Mobile / click toggle
-        dropdown.classList.toggle("show");
-    }
-
-    function closeDropdown() {
-        dropdown.classList.remove("show");
-    }
-
-    // Expose closeDropdown globally for use in onclick inside HTML
-    window.closeDropdown = closeDropdown;
-
-    // Click behavior
-    toolsBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleDropdown();
-    });
-
-    // Click outside to close
-    document.addEventListener("click", (e) => {
-        if (!dropdown.contains(e.target) && !toolsBtn.contains(e.target)) {
-            closeDropdown();
-        }
-    });
-}
-
-/* ========= GOOGLE SIGN-IN ========= */
-function initGoogleButton() {
-    const container = document.getElementById("g_id_signin");
-    if (!container) return;
-
-    // Don't render again if already has a button
-    if (container.childElementCount > 0) return;
-
-    if (window.google && google.accounts && google.accounts.id) {
-        google.accounts.id.initialize({
-            client_id: CLIENT_ID,
-            callback: handleLogin
-        });
-        google.accounts.id.renderButton(container, { theme: "outline", size: "large" });
-    }
-}
-
-function handleLogin() {
-    const status = document.getElementById("loginStatus");
-    if (status) status.innerText = "Requesting permissions…";
-
-    const tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
-        callback: (t) => {
-            accessToken = t.access_token;
-            if (status) status.innerText = "Login successful. Ready to send.";
-            updateSendButton();
-        }
-    });
-    tokenClient.requestAccessToken();
-}
-
-/* ========= PERFORMA TEMPLATE DOWNLOAD ========= */
-function downloadPerforma() {
-    const url =
-      "https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "Performa.xlsx";
-    a.click();
-}
-
-/* ========= PERFORMA HANDLING ========= */
-function setupPerformaDrag() {
-    const dz = document.getElementById("dropZone");
-    const fileInput = document.getElementById("fileInput");
-    if (!dz || !fileInput) return;
-
-    // Remove existing listeners by cloning (prevents duplicates on re-enter)
-    const newDz = dz.cloneNode(true);
-    dz.parentNode.replaceChild(newDz, dz);
-
-    const newFileInput = fileInput.cloneNode(true);
-    fileInput.parentNode.replaceChild(newFileInput, fileInput);
-
-    newDz.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
-    });
-    newDz.addEventListener("dragleave", () => {
-        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
-    });
-    newDz.addEventListener("drop", (e) => {
-        e.preventDefault();
-        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handlePerformaFile(e.dataTransfer.files[0]);
-        }
-    });
-
-    newFileInput.addEventListener("change", (e) => {
-        if (e.target.files && e.target.files[0]) {
-            handlePerformaFile(e.target.files[0]);
-        }
-    });
-}
-
-function handlePerformaFile(file) {
-    const info = document.getElementById("fileInfo");
-    if (!file || !file.name.endsWith(".xlsx")) {
-        if (info) info.innerText = "Please select a valid .xlsx file.";
-        return;
-    }
-    if (info) info.innerText = "Loaded: " + file.name;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-            if (json.length < 2) {
-                if (info) info.innerText = "File has a header but no data rows.";
-                sheetRows = [];
-                renderTable([], []);
-                updateSendButton();
-                return;
-            }
-
-            // Expect: Name | Email | Attachment Name
-            const header = ["Name", "Email", "Attachment Name"];
-            const idx = { name: 0, email: 1, attach: 2 };
-
-            sheetRows = json.slice(1)
-                .map(row => ({
-                    name: row[idx.name] || "",
-                    email: row[idx.email] || "",
-                    attachmentName: row[idx.attach] || ""
-                }))
-                .filter(r => r.email);
-
-            renderTable(header, sheetRows.map(r => [r.name, r.email, r.attachmentName]));
-            updateSendButton();
-        } catch (err) {
-            console.error("Performa parse error:", err);
-            if (info) info.innerText = "Error processing file. Please check console.";
-            sheetRows = [];
-            renderTable([], []);
-            updateSendButton();
-        }
-    };
-
-    reader.readAsArrayBuffer(file);
-}
-
-function renderTable(header, rows) {
-    const container = document.getElementById("tableContainer");
-    if (!container) return;
-
-    if (!rows.length) {
-        container.innerHTML = '<p class="text-gray-500 text-sm mt-2">No valid rows detected.</p>';
-        return;
-    }
-
-    let html = `<p class="text-gray-400 text-sm mb-2">Previewing first 10 of ${rows.length} rows:</p>`;
-    html += '<div class="overflow-x-auto">';
-    html += '<table class="w-full text-sm border border-gray-700 rounded-lg overflow-hidden">';
-    html += '<thead class="bg-gray-900"><tr>';
-    header.forEach(h => {
-        html += `<th class="px-3 py-2 text-left border-b border-gray-700 text-bubble-teal">${h}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-
-    rows.slice(0, 10).forEach(r => {
-        html += '<tr class="border-b border-gray-800 hover:bg-gray-900/60">';
-        html += `<td class="px-3 py-2">${r[0] || ""}</td>`;
-        html += `<td class="px-3 py-2">${r[1] || ""}</td>`;
-        html += `<td class="px-3 py-2">${r[2] || ""}</td>`;
-        html += '</tr>';
-    });
-
-    html += '</tbody></table></div>';
-    container.innerHTML = html;
-}
-
-/* ========= ATTACHMENT UPLOAD ========= */
-function setupAttachmentDragDrop() {
-    const dz = document.getElementById("attachmentDropZone");
-    const attachmentInput = document.getElementById("attachmentInput");
-    if (!dz || !attachmentInput) return;
-
-    const newDz = dz.cloneNode(true);
-    dz.parentNode.replaceChild(newDz, dz);
-
-    const newInput = attachmentInput.cloneNode(true);
-    attachmentInput.parentNode.replaceChild(newInput, attachmentInput);
-
-    newDz.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
-    });
-    newDz.addEventListener("dragleave", () => {
-        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
-    });
-    newDz.addEventListener("drop", (e) => {
-        e.preventDefault();
-        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
-        if (e.dataTransfer.files && e.dataTransfer.files.length) {
-            uploadAttachments(e.dataTransfer.files);
-        }
-    });
-
-    newInput.addEventListener("change", (e) => {
-        if (e.target.files && e.target.files.length) {
-            uploadAttachments(e.target.files);
-        }
-    });
-}
-
-async function uploadAttachments(filesList) {
-    const status = document.getElementById("attachmentUploadStatus");
-    const files = Array.from(filesList || []);
-    if (!files.length) {
-        if (status) status.innerText = "No files selected.";
-        return;
-    }
-
-    if (status) status.innerText = `Uploading ${files.length} file(s)…`;
-
-    const formData = new FormData();
-    formData.append("mode", "uploadAttachments");
-    files.forEach(f => formData.append("files", f, f.name));
-
-    try {
-        const res = await fetch(SCRIPT_WEBAPP_URL, {
-            method: "POST",
-            body: formData
-        });
-        const data = await res.json();
-        if (Array.isArray(data)) {
-            if (status) status.innerText = `Uploaded ${data.length} file(s) successfully.`;
-        } else if (data && typeof data === "object") {
-            if (data.success === false) {
-                if (status) status.innerText = `Upload failed: ${data.error || "Server error."}`;
-            } else {
-                if (status) status.innerText = "Upload completed.";
-            }
-        } else {
-            if (status) status.innerText = "Upload completed.";
-        }
-    } catch (err) {
-        console.error("Attachment upload error:", err);
-        if (status) status.innerText = "Upload failed. See console.";
-    }
-}
-
-/* ========= DAILY QUOTA (LOCAL) ========= */
-const DAILY_LIMIT = 100;
-const QUOTA_DAY_KEY = "owh_quota_day";
-const QUOTA_COUNT_KEY = "owh_quota_count";
-
-function getTodayKey() {
-    const d = new Date();
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
-}
-
-function loadQuota() {
-    const today = getTodayKey();
-    const storedDay = localStorage.getItem(QUOTA_DAY_KEY);
-    let count = Number(localStorage.getItem(QUOTA_COUNT_KEY) || 0);
-
-    if (storedDay !== today) {
-        count = 0;
-        localStorage.setItem(QUOTA_DAY_KEY, today);
-        localStorage.setItem(QUOTA_COUNT_KEY, "0");
-    }
-    return count;
-}
-
-function saveQuota(count) {
-    localStorage.setItem(QUOTA_COUNT_KEY, String(count));
-}
-
-function quotaExceeded() {
-    return loadQuota() >= DAILY_LIMIT;
-}
-
-function incrementQuota() {
-    let count = loadQuota();
-    count++;
-    saveQuota(count);
-    updateQuotaDisplay();
-}
-
-function updateQuotaDisplay() {
-    const used = loadQuota();
-    const countEl = document.getElementById("quotaCount");
-    const limitEl = document.getElementById("quotaLimit");
-    if (countEl) countEl.innerText = used;
-    if (limitEl) limitEl.innerText = DAILY_LIMIT;
-}
-
-/* ========= SEND BUTTON ENABLE LOGIC ========= */
-function updateSendButton() {
-    const sendBtn = document.getElementById("sendBtn");
-    if (!sendBtn) return;
-
-    const subject = document.getElementById("subject")?.value.trim();
-    const msg = document.getElementById("editor")?.value.trim();
-
-    const ok = accessToken &&
-               sheetRows.length > 0 &&
-               subject &&
-               msg &&
-               !sending &&
-               !quotaExceeded();
-
-    sendBtn.disabled = !ok;
-
-    if (quotaExceeded()) {
-        sendBtn.textContent = "Daily Limit Reached";
-        sendBtn.classList.add("opacity-60", "cursor-not-allowed");
-    } else {
-        sendBtn.textContent = "Start Sending Emails";
-        if (ok) {
-            sendBtn.classList.remove("opacity-60", "cursor-not-allowed");
-        } else {
-            sendBtn.classList.add("opacity-60", "cursor-not-allowed");
-        }
-    }
-}
-
-/* ========= BULK SEND ========= */
-async function startBulkSend() {
-    sending = true;
-    updateSendButton();
-
-    const failedBtn = document.getElementById("failedBtn");
-    if (failedBtn) failedBtn.classList.add("hidden");
-
-    const subject = document.getElementById("subject").value.trim();
-    const msg = document.getElementById("editor").value.trim();
-
-    const total = sheetRows.length;
-    failedRows = [];
-    const startTime = Date.now();
-
-    for (let i = 0; i < total; i++) {
-        const row = sheetRows[i];
-        const htmlBody = msg.replace(/{{Name}}/g, row.name || "Sir/Madam");
-
-        const progressEl = document.getElementById("progress");
-        const logEl = document.getElementById("log");
-        const etaEl = document.getElementById("eta");
-
-        if (progressEl) progressEl.innerText = `Sending ${i + 1}/${total}…`;
-        if (logEl) logEl.innerText = `Current: ${row.email}`;
-
-        const ok = await sendOne(row, subject, htmlBody);
-        if (!ok) {
-            failedRows.push(row);
-        } else {
-            incrementQuota();
-        }
-
-        const elapsed = (Date.now() - startTime) / 1000;
-        const avg = elapsed / (i + 1);
-        const remaining = Math.round(avg * (total - (i + 1)));
-        if (etaEl) etaEl.innerText = `Estimated time left: ${remaining}s`;
-
-        await new Promise(res => setTimeout(res, 300));
-    }
-
-    sending = false;
-    updateSendButton();
-
-    const progressEl = document.getElementById("progress");
-    const logEl = document.getElementById("log");
-    const etaEl = document.getElementById("eta");
-
-    if (!failedRows.length) {
-        if (progressEl) progressEl.innerText = "All emails sent successfully ✅";
-        const sound = document.getElementById("successSound");
-        if (sound) sound.play().catch(() => {});
-    } else {
-        if (progressEl) {
-            progressEl.innerText =
-              `${total - failedRows.length}/${total} sent successfully, ${failedRows.length} failed.`;
-        }
-        if (failedBtn) failedBtn.classList.remove("hidden");
-    }
-
-    if (logEl) logEl.innerText = "Done.";
-    if (etaEl) etaEl.innerText = "";
-}
-
-/* ========= SEND ONE EMAIL VIA APPS SCRIPT ========= */
-async function sendOne(row, subject, htmlBody) {
-    try {
-        const res = await fetch(SCRIPT_WEBAPP_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                mode: "sendEmailWithAttachmentName",
-                to: row.email,
-                subject,
-                htmlBody,
-                attachmentName: row.attachmentName,
-                accessToken
-            })
-        });
-        const data = await res.json();
-        return !!data.success;
-    } catch (err) {
-        console.error("Send error for", row.email, err);
-        return false;
-    }
-}
-
-/* ========= DOWNLOAD FAILED CSV ========= */
-function downloadFailed() {
-    if (!failedRows.length) return;
-
-    let csv = "Name,Email,Attachment Name\n";
-    failedRows.forEach(r => {
-        csv += `"${r.name}","${r.email}","${r.attachmentName}"\n`;
-    });
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "failed_rows.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-/* ========= INCIDENT REPORT FORMATTER LOGIC ========= */
-
-let incidentPhotos = [];
-
-/* Read images and keep them in memory as dataURLs */
-function handleIncidentPhotoUpload(event) {
-    const files = Array.from(event.target.files || []);
-    incidentPhotos = []; // reset
-
-    if (!files.length) {
-        renderIncidentPhotoList();
-        updateIncidentPreview();
-        return;
-    }
-
-    let loaded = 0;
-    files.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            incidentPhotos.push({
-                name: file.name,
-                dataUrl: e.target.result,
-                caption: ""
-            });
-            loaded++;
-            if (loaded === files.length) {
-                renderIncidentPhotoList();
-                updateIncidentPreview();
-            }
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-/* Show thumbnails + caption inputs under the file input */
-function renderIncidentPhotoList() {
-    const container = document.getElementById("inc-photo-list");
-    if (!container) return;
-
-    if (!incidentPhotos.length) {
-        container.innerHTML = "";
-        return;
-    }
-
-    container.innerHTML = incidentPhotos.map((p, idx) => `
-        <div class="flex gap-3 items-start">
-            <img src="${p.dataUrl}" alt="Photo ${idx + 1}"
-                 class="w-16 h-16 rounded border border-gray-700 object-cover" />
-            <div class="flex-1">
-                <p class="text-xs text-gray-400 mb-1 truncate">${p.name}</p>
-                <input type="text"
-                       data-photo-index="${idx}"
-                       class="w-full px-2 py-1 rounded bg-gray-900 border border-gray-700 text-xs"
-                       placeholder="Caption for this photo"
-                       value="${p.caption || ""}"
-                       oninput="handlePhotoCaptionChange(event)" />
-            </div>
-        </div>
-    `).join("");
-}
-
-/* Update caption in state */
-function handlePhotoCaptionChange(event) {
-    const index = Number(event.target.getAttribute("data-photo-index"));
-    if (isNaN(index)) return;
-    incidentPhotos[index].caption = event.target.value;
-    updateIncidentPreview();
-}
-
-/* Build a simple formal paragraph from rough description + date/time + location */
-function buildFormalDescription(roughText, datetimeValue, location) {
-    const clean = (roughText || "").trim();
-    if (!clean) return "";
-
-    let dtText = "";
-    let timeText = "";
-    if (datetimeValue) {
-        const dt = new Date(datetimeValue);
-        if (!isNaN(dt.getTime())) {
-            const day = dt.getDate().toString().padStart(2, "0");
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
-                                "Aug", "Sep", "Oct", "Nov", "Dec"];
-            const month = monthNames[dt.getMonth()];
-            const year = dt.getFullYear();
-            const hours = dt.getHours().toString().padStart(2, "0");
-            const minutes = dt.getMinutes().toString().padStart(2, "0");
-            dtText = `${day} ${month} ${year}`;
-            timeText = `${hours}${minutes} hours`;
-        }
-    }
-
-    let introParts = [];
-    if (timeText) introParts.push(`At approximately ${timeText}`);
-    if (dtText) introParts.push(`on ${dtText}`);
-    if (location) introParts.push(`at ${location.trim()}`);
-
-    const intro = introParts.length
-        ? introParts.join(", ")
-        : "During the reported period";
-
-    // Minimal clean-up: ensure first letter capital, end with a full stop.
-    let body = clean.replace(/\s+/g, " ");
-    body = body.charAt(0).toUpperCase() + body.slice(1);
-    if (!/[.!?]$/.test(body)) body += ".";
-
-    return `${intro}, the following incident occurred: ${body}`;
-}
-
-/* Render the preview HTML */
-function updateIncidentPreview() {
-    const summary = document.getElementById("inc-summary")?.value || "";
-    const datetime = document.getElementById("inc-datetime")?.value || "";
-    const location = document.getElementById("inc-location")?.value || "";
-    const persons = document.getElementById("inc-persons")?.value || "";
-    const descRough = document.getElementById("inc-description-rough")?.value || "";
-    const actions = document.getElementById("inc-actions")?.value || "";
-    const injuries = document.getElementById("inc-injuries")?.value || "";
-    const witness = document.getElementById("inc-witness")?.value || "";
-    const officer = document.getElementById("inc-officer")?.value || "";
-
-    const previewEl = document.getElementById("incident-report-preview");
-    if (!previewEl) return;
-
-    const formalDescription = buildFormalDescription(descRough, datetime, location);
-
-    const safe = (txt) => (txt || "").trim() ? txt.trim() : "—";
-
-    let photosHtml = "";
-    if (incidentPhotos.length) {
-        photosHtml = `
-            <h4 class="mt-4 mb-1 font-semibold text-xs tracking-wide text-gray-300 uppercase">
-                Supporting Photos
-            </h4>
-        ` + incidentPhotos.map((p, idx) => `
-            <div class="mt-2 mb-4 border border-gray-800 rounded-lg p-2 bg-black/30">
-                <p class="text-xs text-gray-400 mb-1">Photo ${idx + 1}: ${p.caption ? p.caption : p.name}</p>
-                <img src="${p.dataUrl}" class="max-h-64 w-full object-contain rounded border border-gray-800" />
-                ${p.caption ? `<p class="text-[11px] text-gray-500 mt-1">${p.caption}</p>` : ""}
-            </div>
-        `).join("");
-    }
-
-    previewEl.innerHTML = `
-        <div id="incident-report-export" class="max-w-full">
-            <h3 class="text-center text-base font-semibold tracking-[0.2em] text-gray-200 mb-4 uppercase">
-                Incident Report
-            </h3>
-
-            <p class="text-xs text-gray-400 mb-3">
-                Generated via officeworkhelp.in
-            </p>
-
-            <div class="space-y-2 text-sm">
-                <div>
-                    <span class="font-semibold text-gray-300">Incident Summary:</span>
-                    <span class="ml-1 text-gray-200">${safe(summary)}</span>
-                </div>
-                <div>
-                    <span class="font-semibold text-gray-300">Date &amp; Time of Incident:</span>
-                    <span class="ml-1 text-gray-200">${datetime ? new Date(datetime).toLocaleString() : "—"}</span>
-                </div>
-                <div>
-                    <span class="font-semibold text-gray-300">Location:</span>
-                    <span class="ml-1 text-gray-200">${safe(location)}</span>
-                </div>
-            </div>
-
-            <hr class="my-4 border-gray-800" />
-
-            <div class="space-y-3 text-sm">
-                <div>
-                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
-                        Persons Involved
-                    </h4>
-                    <p class="text-gray-200 whitespace-pre-line">${safe(persons)}</p>
-                </div>
-
-                <div>
-                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
-                        Description of Events
-                    </h4>
-                    <p class="text-gray-200 whitespace-pre-line">
-                        ${formalDescription ? formalDescription : safe(descRough)}
-                    </p>
-                </div>
-
-                <div>
-                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
-                        Actions Taken
-                    </h4>
-                    <p class="text-gray-200 whitespace-pre-line">${safe(actions)}</p>
-                </div>
-
-                <div>
-                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
-                        Injuries / Damage
-                    </h4>
-                    <p class="text-gray-200 whitespace-pre-line">${safe(injuries)}</p>
-                </div>
-
-                <div>
-                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
-                        Witness Statements
-                    </h4>
-                    <p class="text-gray-200 whitespace-pre-line">${safe(witness)}</p>
-                </div>
-
-                ${photosHtml}
-
-                <div class="mt-4 pt-2 border-t border-gray-800">
-                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
-                        Reporting Officer
-                    </h4>
-                    <p class="text-gray-200 whitespace-pre-line">${safe(officer)}</p>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-/* Export the preview div as PDF */
-function downloadIncidentPDF() {
-    const reportEl = document.getElementById("incident-report-export");
-    if (!reportEl) return;
-
-    const opt = {
-        margin:       10,
-        filename:     'incident-report.pdf',
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().from(reportEl).set(opt).save();
-}
-
-/* Export as basic Word document (HTML inside .doc file) */
-function downloadIncidentWord() {
-    const reportEl = document.getElementById("incident-report-export");
-    if (!reportEl) return;
-
-    const header = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office'
-              xmlns:w='urn:schemas-microsoft-com:office:word'
-              xmlns='http://www.w3.org/TR/REC-html40'>
-        <head><meta charset="utf-8"><title>Incident Report</title></head><body>`;
-    const footer = "</body></html>";
-    const html = header + reportEl.innerHTML + footer;
-
-    const blob = new Blob(['\ufeff', html], {
-        type: 'application/msword'
-    });
-
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "incident-report.doc";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
-
-/* ========= INITIALIZATION ========= */
+/* ============================================================
+      FINAL INITIALIZATION — RUNS ON PAGE LOAD
+   ============================================================ */
 document.addEventListener("DOMContentLoaded", () => {
-    // Default section
+
+    // Default section: home
     showSection("home");
 
-    // Background bubbles
+    // Floating background bubbles
     spawnBubbles();
 
     // Dropdown hybrid behavior
     setupDropdown();
 
-    // Initialize Google sign-in button (if library loaded early)
+    // Initialize Google buttons (bulk + incident)
     initGoogleButton();
+    irInitGoogleButton();
 
-    // Setup file drag & drop now (also re-wired when entering bulk-email)
+    // Setup file drag & drop for Bulk Email
     setupPerformaDrag();
     setupAttachmentDragDrop();
 
-    // Initial quota display
-    updateQuotaDisplay();
-
-    // Ensure send button reacts if user types subject/body before login
+    // Setup Report Formatter input listeners
     document.addEventListener("input", (e) => {
-        if (e.target.id === "subject" || e.target.id === "editor") {
-            updateSendButton();
-        }
+        const IR_FIELDS = [
+            "ir-summary", "ir-datetime", "ir-location", "ir-persons",
+            "ir-description-raw", "ir-actions", "ir-damage",
+            "ir-witness", "ir-officer"
+        ];
+        if (IR_FIELDS.includes(e.target.id)) irUpdatePreview();
     });
 
-    // Prepare empty incident preview so the right side is not blank
-    updateIncidentPreview();
+    // Update daily quota display for Bulk Email
+    updateQuotaDisplay();
 });
 </script>
 

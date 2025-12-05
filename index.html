@@ -574,12 +574,17 @@ let IR_AUTH_SIG = null;    // cryptographic watermark signature
 /* -------------------------------
    Render Google Sign-In Button
 -------------------------------- */
+<script>
 function irInitGoogleButton() {
     const container = document.getElementById("ir-google-signin");
     if (!container) return;
 
-    // Prevent multiple renders
-    if (container.childElementCount > 0) return;
+    // Prevent duplicate rendering
+    if (container.getAttribute("data-rendered") === "true") return;
+
+    // TEMPORARILY unhide container for Google to render properly
+    const oldDisplay = container.style.display;
+    container.style.display = "block";
 
     google.accounts.id.initialize({
         client_id: CLIENT_ID,
@@ -589,9 +594,14 @@ function irInitGoogleButton() {
     google.accounts.id.renderButton(container, {
         theme: "outline",
         size: "large",
-        width: 250
+        width: 260
     });
+
+    // Restore original display (hidden or block)
+    container.style.display = oldDisplay;
+    container.setAttribute("data-rendered", "true");
 }
+</script>
 
 /* -------------------------------
    Parse Google ID JWT Token

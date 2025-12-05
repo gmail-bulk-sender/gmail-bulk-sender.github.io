@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OfficeWorkHelp - Bulk Email Sender</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+<!-- Google Sign-In + XLSX -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+/* Lighter bubble animation */
+.bubble {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0.35;
+    animation: riseUp linear infinite;
+}
+
+@keyframes riseUp {
+    from { transform: translateY(0); opacity: 0.45; }
+    to { transform: translateY(-100vh); opacity: 0; }
+}
+</style>
+</head>
+
+<body class="bg-gray-950 text-gray-200">
+
+<!-- Background (Light Animation) -->
+<div id="bubble-container" class="fixed inset-0 -z-10 overflow-hidden"></div>
+
+<!-- NAV -->
+<nav class="flex justify-between items-center px-6 py-4 bg-gray-900 shadow-lg">
+    <span class="text-lg font-semibold text-teal-400">OfficeWorkHelp</span>
+    <ul class="flex gap-6 text-sm font-medium">
+        <li><a href="index.html" class="hover:text-teal-400">Home</a></li>
+        <li><a href="tools.html" class="hover:text-teal-400">Tools</a></li>
+        <li><a href="bulk-email.html" class="hover:text-teal-400">Bulk Email</a></li>
+        <li><a href="about.html" class="hover:text-teal-400">About</a></li>
+    </ul>
+</nav>
+
+<main class="px-6 py-10 max-w-4xl mx-auto">
+    <h1 class="text-4xl text-teal-400 font-bold mb-6">Bulk Email Sender</h1>
+
+    <!-- GOOGLE SIGN-IN -->
+    <div>
+        <h2 class="text-xl text-teal-400 mb-2">1. Login with Google</h2>
+        <div id="g_id_signin"></div>
+        <p id="loginStatus" class="text-sm text-teal-300 mt-2"></p>
+    </div>
+
+    <!-- PERFORMA -->
+    <div class="mt-10">
+        <h2 class="text-xl text-teal-400 mb-2">2. Upload Performa (.xlsx)</h2>
+
+        <div id="dropZone"
+             class="border border-gray-700 rounded p-6 text-center cursor-pointer hover:bg-gray-900/60 transition">
+            Drop file here or click to upload  
+            <input type="file" id="fileInput" class="hidden" accept=".xlsx">
+        </div>
+        <p id="fileInfo" class="text-sm text-gray-400 mt-2"></p>
+
+        <div id="tableContainer" class="mt-4"></div>
+    </div>
+
+    <!-- ATTACHMENTS -->
+    <div class="mt-10">
+        <h2 class="text-xl text-teal-400 mb-2">3. Upload Attachments</h2>
+
+        <div id="attachmentDropZone"
+             class="border border-gray-700 rounded p-6 text-center cursor-pointer hover:bg-gray-900/60 transition">
+            Drop multiple files here  
+            <input type="file" id="attachmentInput" multiple class="hidden">
+        </div>
+
+        <p id="attachmentUploadStatus" class="text-sm text-gray-400 mt-2"></p>
+    </div>
+
+
+    <!-- EMAIL WRITER -->
+    <div class="mt-10">
+        <h2 class="text-xl text-teal-400 mb-4">4. Compose Email</h2>
+
+        <input id="subject"
+               placeholder="Subject"
+               class="w-full p-3 rounded bg-gray-800 border border-gray-700 mb-3">
+
+        <textarea id="editor"
+                  placeholder="Write your message… Use {{Name}}"
+                  class="w-full p-3 rounded bg-gray-800 border border-gray-700 h-40"></textarea>
+    </div>
+
+    <!-- SEND BUTTON -->
+    <button id="sendBtn"
+            onclick="startBulkSend()"
+            class="px-6 py-3 bg-teal-500 text-black rounded font-semibold mt-6 opacity-60 cursor-not-allowed"
+            disabled>
+        Start Sending Emails
+    </button>
+
+    <!-- PROGRESS -->
+    <div class="mt-10">
+        <p id="progress" class="text-lg text-teal-300"></p>
+        <p id="log" class="text-sm text-gray-400"></p>
+        <p id="eta" class="text-sm text-gray-500"></p>
+        <button id="failedBtn"
+                onclick="downloadFailed()"
+                class="hidden mt-4 bg-red-600 px-4 py-2 rounded text-white">
+            Download Failed CSV
+        </button>
+    </div>
+
+    <!-- QUOTA DISPLAY -->
+    <div class="text-gray-500 mt-10">
+        Daily Limit: <span id="quotaCount">0</span> / <span id="quotaLimit">100</span>
+    </div>
+
+</main>
+
+<!-- SUCCESS SOUND -->
+<audio id="successSound">
+    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+</audio>
+
+<footer class="mt-12 border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+    © 2025 officeworkhelp.in
+</footer>
+
+<script>
+/* ========= LIGHT BACKGROUND ANIMATION ========= */
+function spawnLightBubbles() {
+    const box = document.getElementById("bubble-container");
+    for (let i = 0; i < 10; i++) {
+        const b = document.createElement("div");
+        b.className = "bubble";
+        const size = 50 + Math.random() * 120;
+        b.style.width = b.style.height = size + "px";
+        b.style.left = Math.random() * 100 + "vw";
+        b.style.bottom = "-180px";
+        b.style.background = "radial-gradient(circle, rgba(255,255,255,0.5), rgba(0,150,150,0.05))";
+        b.style.animationDuration = 10 + Math.random() * 8 + "s";
+        b.style.animationDelay = Math.random() * 6 + "s";
+        box.appendChild(b);
+    }
+}
+spawnLightBubbles();
+
+
+/* ========= CONFIG ========= */
+const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
+const SCRIPT_WEBAPP_URL =
+  "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
+
+let accessToken = null;
+let sheetRows = [];
+let failedRows = [];
+let sending = false;
+
+
+/* ========= GOOGLE LOGIN ========= */
+function initGoogleButton() {
+    if (!document.getElementById("g_id_signin")) return;
+    google.accounts.id.initialize({
+        client_id: CLIENT_ID,
+        callback: handleLogin
+    });
+    google.accounts.id.renderButton(
+        document.getElementById("g_id_signin"),
+        { theme: "outline", size: "large" }
+    );
+}
+
+function handleLogin() {
+    const status = document.getElementById("loginStatus");
+    status.innerText = "Requesting Gmail permissions…";
+
+    const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
+        callback: (t) => {
+            accessToken = t.access_token;
+            status.innerText = "Login successful.";
+            updateSendButton();
+        }
+    });
+    tokenClient.requestAccessToken();
+}
+
+initGoogleButton();
+
+
+/* ========= PERFORMA UPLOAD ========= */
+function setupPerformaDrag() {
+    const dz = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+
+    dz.addEventListener("click", () => fileInput.click());
+    dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("bg-gray-900/50"); });
+    dz.addEventListener("dragleave", () => dz.classList.remove("bg-gray-900/50"));
+    dz.addEventListener("drop", e => {
+        e.preventDefault();
+        dz.classList.remove("bg-gray-900/50");
+        handlePerformaFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener("change", e => handlePerformaFile(e.target.files[0]));
+}
+setupPerformaDrag();
+
+
+function handlePerformaFile(file) {
+    const info = document.getElementById("fileInfo");
+    if (!file?.name.endsWith(".xlsx")) {
+        info.innerText = "Invalid file.";
+        return;
+    }
+    info.innerText = "Loaded: " + file.name;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        if (data.length < 2) {
+            info.innerText = "File has no data rows.";
+            sheetRows = [];
+            return;
+        }
+
+        sheetRows = data.slice(1).map(r => ({
+            name: r[0] || "",
+            email: r[1] || "",
+            attachmentName: r[2] || ""
+        })).filter(r => r.email);
+
+        updateSendButton();
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+
+/* ========= ATTACHMENT UPLOADER ========= */
+function setupAttachmentDragDrop() {
+    const dz = document.getElementById("attachmentDropZone");
+    const input = document.getElementById("attachmentInput");
+
+    dz.addEventListener("click", () => input.click());
+    dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("bg-gray-900/50"); });
+    dz.addEventListener("dragleave", () => dz.classList.remove("bg-gray-900/50"));
+    dz.addEventListener("drop", e => {
+        e.preventDefault();
+        dz.classList.remove("bg-gray-900/50");
+        uploadAttachments(e.dataTransfer.files);
+    });
+
+    input.addEventListener("change", e => uploadAttachments(e.target.files));
+}
+setupAttachmentDragDrop();
+
+
+async function uploadAttachments(files) {
+    const status = document.getElementById("attachmentUploadStatus");
+
+    const form = new FormData();
+    form.append("mode", "uploadAttachments");
+    [...files].forEach(f => form.append("files", f, f.name));
+
+    status.innerText = "Uploading…";
+
+    try {
+        const res = await fetch(SCRIPT_WEBAPP_URL, { method: "POST", body: form });
+        const data = await res.json();
+
+        status.innerText = data?.length
+            ? `Uploaded ${data.length} files successfully.`
+            : "Upload completed.";
+    } catch {
+        status.innerText = "Upload failed.";
+    }
+}
+
+
+/* ========= QUOTA SYSTEM ========= */
+const DAILY_LIMIT = 100;
+function getTodayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+function loadQuota() {
+    if (localStorage.day !== getTodayKey()) {
+        localStorage.day = getTodayKey();
+        localStorage.quota = 0;
+    }
+    return Number(localStorage.quota || 0);
+}
+function incrementQuota() {
+    localStorage.quota = loadQuota() + 1;
+    document.getElementById("quotaCount").innerText = localStorage.quota;
+}
+document.getElementById("quotaCount").innerText = loadQuota();
+document.getElementById("quotaLimit").innerText = DAILY_LIMIT;
+
+
+/* ========= SEND BUTTON STATE ========= */
+function updateSendButton() {
+    const btn = document.getElementById("sendBtn");
+    const ok = accessToken &&
+               sheetRows.length &&
+               document.getElementById("subject").value.trim() &&
+               document.getElementById("editor").value.trim() &&
+               loadQuota() < DAILY_LIMIT &&
+               !sending;
+
+    btn.disabled = !ok;
+    btn.classList.toggle("opacity-60", !ok);
+    btn.classList.toggle("cursor-not-allowed", !ok);
+}
+
+
+/* ========= BULK SEND PROCESS ========= */
+async function startBulkSend() {
+    sending = true;
+    updateSendButton();
+
+    const subject = document.getElementById("subject").value.trim();
+    const body = document.getElementById("editor").value.trim();
+
+    const progress = document.getElementById("progress");
+    const log = document.getElementById("log");
+    const eta = document.getElementById("eta");
+    const failedBtn = document.getElementById("failedBtn");
+
+    failedRows = [];
+    const total = sheetRows.length;
+    const start = Date.now();
+
+    for (let i = 0; i < total; i++) {
+        const r = sheetRows[i];
+        const msg = body.replace(/{{Name}}/g, r.name || "Sir/Madam");
+
+        progress.innerText = `Sending ${i+1}/${total}…`;
+        log.innerText = `Current: ${r.email}`;
+
+        const success = await sendOne(r, subject, msg);
+        if (!success) failedRows.push(r);
+        else incrementQuota();
+
+        const elapsed = (Date.now() - start) / 1000;
+        eta.innerText = `ETA: ${Math.round(elapsed/(i+1)*(total-i-1))}s`;
+
+        await new Promise(res => setTimeout(res, 250));
+    }
+
+    sending = false;
+    updateSendButton();
+
+    if (failedRows.length) {
+        progress.innerText = `${total - failedRows.length}/${total} sent. ${failedRows.length} failed.`;
+        failedBtn.classList.remove("hidden");
+    } else {
+        progress.innerText = "All emails sent successfully 🎉";
+        document.getElementById("successSound").play();
+    }
+
+    log.innerText = "Done.";
+    eta.innerText = "";
+}
+
+
+/* ========= SEND ONE EMAIL ========= */
+async function sendOne(row, subject, body) {
+    try {
+        const res = await fetch(SCRIPT_WEBAPP_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                mode: "sendEmailWithAttachmentName",
+                to: row.email,
+                subject,
+                htmlBody: body,
+                attachmentName: row.attachmentName,
+                accessToken
+            })
+        });
+        const data = await res.json();
+        return data.success;
+    } catch {
+        return false;
+    }
+}
+
+
+/* ========= FAILED CSV ========= */
+function downloadFailed() {
+    if (!failedRows.length) return;
+
+    let csv = "Name,Email,Attachment\n";
+    failedRows.forEach(r => {
+        csv += `"${r.name}","${r.email}","${r.attachmentName}"\n`;
+    });
+
+    const blob = new Blob([csv], { type:"text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "failed_rows.csv";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+</script>
+
+</body>
+</html>

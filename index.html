@@ -17,6 +17,9 @@
 <!-- Fonts -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
 
+<!-- html2pdf for Incident Report PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <script>
 tailwind.config = {
     theme: {
@@ -161,8 +164,10 @@ body {
                         Bulk Email Sender
                     </div>
 
-                    <div class="dropdown-item opacity-50 cursor-not-allowed">
-                        Report Formatter (coming soon)
+                    <!-- Report Formatter now active -->
+                    <div class="dropdown-item"
+                        onclick="showSection('report-formatter'); closeDropdown();">
+                        Incident Report Formatter
                     </div>
 
                     <div class="dropdown-item opacity-50 cursor-not-allowed">
@@ -202,6 +207,7 @@ body {
         Explore Tools →
     </button>
 </section>
+
 <!-- =======================
        TOOLS DIRECTORY
 ======================= -->
@@ -223,10 +229,15 @@ body {
             <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
         </div>
 
-        <!-- Placeholder Tool -->
-        <div class="p-6 bg-gray-800/30 border border-gray-700/40 rounded-xl opacity-60">
-            <h3 class="text-2xl font-bold text-gray-500 mb-2">Report Formatter</h3>
-            <p class="text-gray-600 text-sm">Coming soon…</p>
+        <!-- Report Formatter Tool Card (ACTIVE) -->
+        <div onclick="showSection('report-formatter')"
+            class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl cursor-pointer 
+                   hover:border-bubble-teal transition hover:shadow-lg hover:shadow-bubble-teal/10">
+            <h3 class="text-2xl font-bold text-bubble-teal mb-2">Incident Report Formatter</h3>
+            <p class="text-gray-400 mb-4 text-sm">
+                Turn rough incident notes and photos into clean, formal reports.
+            </p>
+            <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
         </div>
 
         <!-- Placeholder Tool -->
@@ -359,6 +370,178 @@ body {
 
 
 <!-- =======================
+   INCIDENT REPORT FORMATTER
+======================= -->
+<section id="report-formatter" class="hidden-section fade-in min-h-[80vh] pb-10">
+
+    <div class="mb-8">
+        <p class="text-gray-400 text-sm mb-1">
+            <span class="hover:text-bubble-teal cursor-pointer" onclick="showSection('tools')">Tools</span>
+            / Incident Report Formatter
+        </p>
+        <h2 class="text-4xl font-extrabold text-bubble-teal">Incident Report Formatter</h2>
+        <p class="text-gray-400 max-w-3xl mt-2 text-sm sm:text-base">
+            Fill the incident details on the left. A clean, formal report will appear on the right,
+            ready to download as PDF or editable Word.
+        </p>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-6 items-stretch">
+
+        <!-- LEFT: FORM -->
+        <div class="bg-gray-800/60 border border-gray-700 rounded-xl p-5 space-y-4 overflow-y-auto max-h-[75vh]">
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Incident Summary
+                </label>
+                <input id="inc-summary" type="text"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                    placeholder="Short title of the incident"
+                    oninput="updateIncidentPreview()" />
+            </div>
+
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-200 mb-1">
+                        Date &amp; Time of Incident
+                    </label>
+                    <input id="inc-datetime" type="datetime-local"
+                        class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                        onchange="updateIncidentPreview()" />
+                    <p class="text-xs text-gray-500 mt-1">
+                        Used to generate a formal timestamp (e.g., “At approximately 1600 hours on 5 Dec 2025…”)
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-200 mb-1">
+                        Location
+                    </label>
+                    <input id="inc-location" type="text"
+                        class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                        placeholder="Example: Main Gate, Office Campus"
+                        oninput="updateIncidentPreview()" />
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Persons Involved
+                </label>
+                <textarea id="inc-persons"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                    placeholder="List names, designations, IDs, contact details if needed."
+                    rows="3"
+                    oninput="updateIncidentPreview()"></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Description of Events (rough notes)
+                </label>
+                <textarea id="inc-description-rough"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                    placeholder="Write what happened in your own words. The tool will convert this into simple formal language."
+                    rows="5"
+                    oninput="updateIncidentPreview()"></textarea>
+                <p class="text-xs text-gray-500 mt-1">
+                    Example: “At around 4 pm two guys were arguing near the gate. Then one pushed the other and he fell. We separated them.”
+                </p>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Actions Taken
+                </label>
+                <textarea id="inc-actions"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                    rows="3"
+                    oninput="updateIncidentPreview()"
+                    placeholder="Immediate response, escalation, medical support, reporting, etc."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Injuries / Damage
+                </label>
+                <textarea id="inc-injuries"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                    rows="3"
+                    oninput="updateIncidentPreview()"
+                    placeholder="Describe any injuries, damage to property, or ‘None reported’."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Witness Statements
+                </label>
+                <textarea id="inc-witness"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                    rows="3"
+                    oninput="updateIncidentPreview()"
+                    placeholder="Names of witnesses and brief summary of their statements."></textarea>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Name / Signature / Reporting Officer Details
+                </label>
+                <textarea id="inc-officer"
+                    class="w-full px-3 py-2 rounded-lg bg-gray-900 border border-gray-700 text-sm"
+                    rows="2"
+                    oninput="updateIncidentPreview()"
+                    placeholder="Name, designation, ID, contact, signature line."></textarea>
+            </div>
+
+            <!-- Photos -->
+            <div class="pt-2">
+                <label class="block text-sm font-semibold text-gray-200 mb-1">
+                    Supporting Photos (with captions)
+                </label>
+                <input id="inc-photos" type="file" multiple accept="image/*"
+                    class="block w-full text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3
+                           file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                           file:bg-bubble-teal/20 file:text-bubble-teal hover:file:bg-bubble-teal hover:file:text-black"
+                    onchange="handleIncidentPhotoUpload(event)" />
+                <p class="text-xs text-gray-500 mt-1">
+                    You can add short captions for each photo. These will appear below the images in the report.
+                </p>
+
+                <div id="inc-photo-list" class="mt-3 space-y-3 max-h-48 overflow-y-auto pr-1"></div>
+            </div>
+
+        </div>
+
+        <!-- RIGHT: PREVIEW -->
+        <div class="bg-gray-900/60 border border-gray-700 rounded-xl flex flex-col max-h-[75vh]">
+
+            <div class="border-b border-gray-800 px-5 py-3 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-200">
+                    Live Incident Report Preview
+                </h3>
+                <div class="flex gap-2">
+                    <button onclick="downloadIncidentPDF()"
+                        class="px-3 py-1.5 rounded-lg bg-bubble-teal/20 text-xs text-bubble-teal border border-bubble-teal hover:bg-bubble-teal hover:text-black">
+                        Download PDF
+                    </button>
+                    <button onclick="downloadIncidentWord()"
+                        class="px-3 py-1.5 rounded-lg bg-gray-800 text-xs text-gray-200 border border-gray-700 hover:border-bubble-teal">
+                        Download Word
+                    </button>
+                </div>
+            </div>
+
+            <div id="incident-report-preview"
+                 class="flex-1 overflow-y-auto px-5 py-4 text-sm leading-relaxed bg-gray-950/50">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+<!-- =======================
         ABOUT ME
 ======================= -->
 <section id="about" class="hidden-section fade-in min-h-[80vh] py-12">
@@ -424,7 +607,8 @@ let sheetRows = [];
 let failedRows = [];
 let sending = false;
 
-const SECTIONS = ["home", "tools", "bulk-email", "about"];
+/* 🔴 ADD NEW SECTION ID HERE */
+const SECTIONS = ["home", "tools", "bulk-email", "report-formatter", "about"];
 
 /* ========= SECTION SWITCHING ========= */
 function showSection(id) {
@@ -455,6 +639,11 @@ function showSection(id) {
         setupAttachmentDragDrop();
         updateSendButton();
         updateQuotaDisplay();
+    }
+
+    // When entering Report Formatter, ensure preview is synced
+    if (id === "report-formatter") {
+        updateIncidentPreview();
     }
 }
 
@@ -929,6 +1118,269 @@ function downloadFailed() {
     URL.revokeObjectURL(url);
 }
 
+/* ========= INCIDENT REPORT FORMATTER LOGIC ========= */
+
+let incidentPhotos = [];
+
+/* Read images and keep them in memory as dataURLs */
+function handleIncidentPhotoUpload(event) {
+    const files = Array.from(event.target.files || []);
+    incidentPhotos = []; // reset
+
+    if (!files.length) {
+        renderIncidentPhotoList();
+        updateIncidentPreview();
+        return;
+    }
+
+    let loaded = 0;
+    files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            incidentPhotos.push({
+                name: file.name,
+                dataUrl: e.target.result,
+                caption: ""
+            });
+            loaded++;
+            if (loaded === files.length) {
+                renderIncidentPhotoList();
+                updateIncidentPreview();
+            }
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+/* Show thumbnails + caption inputs under the file input */
+function renderIncidentPhotoList() {
+    const container = document.getElementById("inc-photo-list");
+    if (!container) return;
+
+    if (!incidentPhotos.length) {
+        container.innerHTML = "";
+        return;
+    }
+
+    container.innerHTML = incidentPhotos.map((p, idx) => `
+        <div class="flex gap-3 items-start">
+            <img src="${p.dataUrl}" alt="Photo ${idx + 1}"
+                 class="w-16 h-16 rounded border border-gray-700 object-cover" />
+            <div class="flex-1">
+                <p class="text-xs text-gray-400 mb-1 truncate">${p.name}</p>
+                <input type="text"
+                       data-photo-index="${idx}"
+                       class="w-full px-2 py-1 rounded bg-gray-900 border border-gray-700 text-xs"
+                       placeholder="Caption for this photo"
+                       value="${p.caption || ""}"
+                       oninput="handlePhotoCaptionChange(event)" />
+            </div>
+        </div>
+    `).join("");
+}
+
+/* Update caption in state */
+function handlePhotoCaptionChange(event) {
+    const index = Number(event.target.getAttribute("data-photo-index"));
+    if (isNaN(index)) return;
+    incidentPhotos[index].caption = event.target.value;
+    updateIncidentPreview();
+}
+
+/* Build a simple formal paragraph from rough description + date/time + location */
+function buildFormalDescription(roughText, datetimeValue, location) {
+    const clean = (roughText || "").trim();
+    if (!clean) return "";
+
+    let dtText = "";
+    let timeText = "";
+    if (datetimeValue) {
+        const dt = new Date(datetimeValue);
+        if (!isNaN(dt.getTime())) {
+            const day = dt.getDate().toString().padStart(2, "0");
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
+                                "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const month = monthNames[dt.getMonth()];
+            const year = dt.getFullYear();
+            const hours = dt.getHours().toString().padStart(2, "0");
+            const minutes = dt.getMinutes().toString().padStart(2, "0");
+            dtText = `${day} ${month} ${year}`;
+            timeText = `${hours}${minutes} hours`;
+        }
+    }
+
+    let introParts = [];
+    if (timeText) introParts.push(`At approximately ${timeText}`);
+    if (dtText) introParts.push(`on ${dtText}`);
+    if (location) introParts.push(`at ${location.trim()}`);
+
+    const intro = introParts.length
+        ? introParts.join(", ")
+        : "During the reported period";
+
+    // Minimal clean-up: ensure first letter capital, end with a full stop.
+    let body = clean.replace(/\s+/g, " ");
+    body = body.charAt(0).toUpperCase() + body.slice(1);
+    if (!/[.!?]$/.test(body)) body += ".";
+
+    return `${intro}, the following incident occurred: ${body}`;
+}
+
+/* Render the preview HTML */
+function updateIncidentPreview() {
+    const summary = document.getElementById("inc-summary")?.value || "";
+    const datetime = document.getElementById("inc-datetime")?.value || "";
+    const location = document.getElementById("inc-location")?.value || "";
+    const persons = document.getElementById("inc-persons")?.value || "";
+    const descRough = document.getElementById("inc-description-rough")?.value || "";
+    const actions = document.getElementById("inc-actions")?.value || "";
+    const injuries = document.getElementById("inc-injuries")?.value || "";
+    const witness = document.getElementById("inc-witness")?.value || "";
+    const officer = document.getElementById("inc-officer")?.value || "";
+
+    const previewEl = document.getElementById("incident-report-preview");
+    if (!previewEl) return;
+
+    const formalDescription = buildFormalDescription(descRough, datetime, location);
+
+    const safe = (txt) => (txt || "").trim() ? txt.trim() : "—";
+
+    let photosHtml = "";
+    if (incidentPhotos.length) {
+        photosHtml = `
+            <h4 class="mt-4 mb-1 font-semibold text-xs tracking-wide text-gray-300 uppercase">
+                Supporting Photos
+            </h4>
+        ` + incidentPhotos.map((p, idx) => `
+            <div class="mt-2 mb-4 border border-gray-800 rounded-lg p-2 bg-black/30">
+                <p class="text-xs text-gray-400 mb-1">Photo ${idx + 1}: ${p.caption ? p.caption : p.name}</p>
+                <img src="${p.dataUrl}" class="max-h-64 w-full object-contain rounded border border-gray-800" />
+                ${p.caption ? `<p class="text-[11px] text-gray-500 mt-1">${p.caption}</p>` : ""}
+            </div>
+        `).join("");
+    }
+
+    previewEl.innerHTML = `
+        <div id="incident-report-export" class="max-w-full">
+            <h3 class="text-center text-base font-semibold tracking-[0.2em] text-gray-200 mb-4 uppercase">
+                Incident Report
+            </h3>
+
+            <p class="text-xs text-gray-400 mb-3">
+                Generated via officeworkhelp.in
+            </p>
+
+            <div class="space-y-2 text-sm">
+                <div>
+                    <span class="font-semibold text-gray-300">Incident Summary:</span>
+                    <span class="ml-1 text-gray-200">${safe(summary)}</span>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-300">Date &amp; Time of Incident:</span>
+                    <span class="ml-1 text-gray-200">${datetime ? new Date(datetime).toLocaleString() : "—"}</span>
+                </div>
+                <div>
+                    <span class="font-semibold text-gray-300">Location:</span>
+                    <span class="ml-1 text-gray-200">${safe(location)}</span>
+                </div>
+            </div>
+
+            <hr class="my-4 border-gray-800" />
+
+            <div class="space-y-3 text-sm">
+                <div>
+                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
+                        Persons Involved
+                    </h4>
+                    <p class="text-gray-200 whitespace-pre-line">${safe(persons)}</p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
+                        Description of Events
+                    </h4>
+                    <p class="text-gray-200 whitespace-pre-line">
+                        ${formalDescription ? formalDescription : safe(descRough)}
+                    </p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
+                        Actions Taken
+                    </h4>
+                    <p class="text-gray-200 whitespace-pre-line">${safe(actions)}</p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
+                        Injuries / Damage
+                    </h4>
+                    <p class="text-gray-200 whitespace-pre-line">${safe(injuries)}</p>
+                </div>
+
+                <div>
+                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
+                        Witness Statements
+                    </h4>
+                    <p class="text-gray-200 whitespace-pre-line">${safe(witness)}</p>
+                </div>
+
+                ${photosHtml}
+
+                <div class="mt-4 pt-2 border-t border-gray-800">
+                    <h4 class="font-semibold text-xs tracking-wide text-gray-300 uppercase mb-1">
+                        Reporting Officer
+                    </h4>
+                    <p class="text-gray-200 whitespace-pre-line">${safe(officer)}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/* Export the preview div as PDF */
+function downloadIncidentPDF() {
+    const reportEl = document.getElementById("incident-report-export");
+    if (!reportEl) return;
+
+    const opt = {
+        margin:       10,
+        filename:     'incident-report.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().from(reportEl).set(opt).save();
+}
+
+/* Export as basic Word document (HTML inside .doc file) */
+function downloadIncidentWord() {
+    const reportEl = document.getElementById("incident-report-export");
+    if (!reportEl) return;
+
+    const header = `
+        <html xmlns:o='urn:schemas-microsoft-com:office:office'
+              xmlns:w='urn:schemas-microsoft-com:office:word'
+              xmlns='http://www.w3.org/TR/REC-html40'>
+        <head><meta charset="utf-8"><title>Incident Report</title></head><body>`;
+    const footer = "</body></html>";
+    const html = header + reportEl.innerHTML + footer;
+
+    const blob = new Blob(['\ufeff', html], {
+        type: 'application/msword'
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "incident-report.doc";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
 /* ========= INITIALIZATION ========= */
 document.addEventListener("DOMContentLoaded", () => {
     // Default section
@@ -956,6 +1408,9 @@ document.addEventListener("DOMContentLoaded", () => {
             updateSendButton();
         }
     });
+
+    // Prepare empty incident preview so the right side is not blank
+    updateIncidentPreview();
 });
 </script>
 

@@ -1,840 +1,842 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>officeworkhelp.in – Tools & Bulk Email Sender</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>officeworkhelp.in – Smart Work Automation</title>
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
+<!-- GOOGLE LOGIN SDK -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
-  <!-- Tailwind Config -->
-  <script>
-    tailwind.config = {
-      theme: {
+<!-- XLSX PARSER -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config = {
+    theme: {
         extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
-          colors: {
-            'gray-950': '#020617'
-          }
+            fontFamily: {
+                sans: ['Inter', 'sans-serif'],
+            },
+            colors: {
+                'bubble-teal': '#3ef0e8'
+            }
         }
-      }
     }
-  </script>
+}
+</script>
 
-  <!-- Inter font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet" />
+<style>
+/* GLOBAL */
+body {
+    background: #020617;
+    color: #e2e8f0;
+    font-family: 'Inter', sans-serif;
+}
 
-  <!-- GOOGLE LOGIN SDK -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+/* Floating bubble animation */
+.bubble {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.55;
+    filter: blur(4px);
+    animation: floatUp 18s infinite ease-in;
+}
 
-  <!-- XLSX PARSER -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+@keyframes floatUp {
+    0% { transform: translateY(0) scale(1); opacity: 0.3; }
+    50% { opacity: 0.65; }
+    100% { transform: translateY(-150vh) scale(1.4); opacity: 0; }
+}
 
-  <style>
-    body {
-      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
+/* Section fade-in */
+.fade-in { animation: fadeIn 1.2s ease forwards; opacity: 0; }
+@keyframes fadeIn { to { opacity: 1; } }
 
-    .hidden-section {
-      display: none;
-    }
+/* Hide / show */
+.hidden-section { display: none; }
+.active-section { display: block; }
 
-    .glow-button {
-      --glow-color: #2dd4bf;
-      border: 1px solid var(--glow-color);
-      transition: all 0.25s ease;
-      box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-    }
-    .glow-button:hover {
-      box-shadow: 0 0 12px var(--glow-color), 0 0 24px rgba(45, 212, 191, 0.5);
-      transform: translateY(-1px);
-      background-color: rgba(45, 212, 191, 0.1);
-    }
-    .glow-button:active {
-      transform: scale(0.98);
-      box-shadow: 0 0 6px var(--glow-color);
-    }
+/* ---- NAVIGATION / DROPDOWN ---- */
+.nav-link { transition: color .2s; }
+.nav-link:hover { color: #3ef0e8; }
 
-    /* Tool cards */
-    .tool-card {
-      background-color: #111827; /* gray-900 */
-      border: 1px solid #1f2937; /* gray-800 */
-      border-radius: 12px;
-      padding: 18px 22px;
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-    }
+/* Dropdown container */
+.dropdown {
+    position: relative;
+}
 
-    textarea, input[type="text"], input[type="file"] {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #374151; /* gray-700 */
-      border-radius: 8px;
-      background: #020617; /* gray-950 */
-      color: #e5e7eb; /* gray-200 */
-      font-size: 0.9rem;
-    }
-    textarea:focus, input[type="text"]:focus, input[type="file"]:focus {
-      outline: none;
-      border-color: #22d3ee; /* cyan-400 */
-      box-shadow: 0 0 0 1px rgba(34,211,238,0.35);
-    }
+/* Actual dropdown menu */
+.dropdown-menu {
+    position: absolute;
+    top: 2.6rem;
+    right: 0;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0;
+    width: 220px;
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 50;
+}
 
-    #dropZone, #attachmentDropZone {
-      border: 2px dashed #4b5563;
-      padding: 16px;
-      text-align: center;
-      border-radius: 10px;
-      margin-top: 10px;
-      cursor: pointer;
-      background-color: #020617;
-      font-size: 0.85rem;
-      color: #9ca3af;
-    }
-    #dropZone.dragover, #attachmentDropZone.dragover {
-      background: rgba(45, 212, 191, 0.12);
-      border-color: #22d3ee;
-    }
+/* Items */
+.dropdown-item {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    color: #94a3b8;
+    transition: background .2s, color .2s;
+}
+.dropdown-item:hover {
+    background: #1e293b;
+    color: #3ef0e8;
+    cursor: pointer;
+}
 
-    #failedBtn {
-      display: none;
-    }
+/* ACTIVE dropdown (shown) */
+.dropdown-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
 
-    /* Simple table styling */
-    .preview-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.85rem;
+/* Mobile tap: disable hover open, JS controls behavior */
+@media (hover: hover) {
+    .dropdown:hover .dropdown-menu {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
     }
-    .preview-table th,
-    .preview-table td {
-      border: 1px solid #1f2937;
-      padding: 6px 8px;
-    }
-    .preview-table th {
-      background: #020617;
-      color: #22d3ee;
-      font-weight: 600;
-    }
-    .preview-table tr:nth-child(even) {
-      background: #030712;
-    }
-
-    /* ---------------- FUTURISTIC HOME HERO WITH SOFT BUBBLES ---------------- */
-
-    .hero-wrapper {
-      position: relative;
-      overflow: hidden;
-      border-radius: 1.25rem;
-      background: radial-gradient(circle at top, #0f172a 0%, #020617 55%, #000 100%);
-      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.95);
-      min-height: 420px;
-    }
-
-    .hero-overlay {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 15% 15%, rgba(56,189,248,0.18), transparent 55%),
-                  radial-gradient(circle at 80% 80%, rgba(45,212,191,0.22), transparent 55%),
-                  linear-gradient(145deg, rgba(15,23,42,0.96), rgba(2,6,23,0.98));
-      mix-blend-mode: screen;
-      opacity: 0.9;
-      pointer-events: none;
-    }
-
-    .hero-bubble {
-      position: absolute;
-      border-radius: 999px;
-      background: radial-gradient(circle at 25% 20%, rgba(255,255,255,0.5), rgba(15,23,42,1));
-      filter: blur(0.2px) saturate(1.25);
-      opacity: 0.5;
-      mix-blend-mode: screen;
-      animation: softFloat 18s ease-in-out infinite;
-    }
-
-    .hero-bubble:nth-child(1) {
-      width: 220px; height: 220px;
-      left: 8%; top: 55%;
-      animation-duration: 24s;
-    }
-    .hero-bubble:nth-child(2) {
-      width: 160px; height: 160px;
-      left: 70%; top: 25%;
-      animation-duration: 20s;
-      animation-delay: 2s;
-    }
-    .hero-bubble:nth-child(3) {
-      width: 260px; height: 260px;
-      left: 42%; top: 65%;
-      animation-duration: 28s;
-      animation-delay: 4s;
-    }
-    .hero-bubble:nth-child(4) {
-      width: 120px; height: 120px;
-      left: 22%; top: 18%;
-      animation-duration: 18s;
-      animation-delay: 1.5s;
-    }
-    .hero-bubble:nth-child(5) {
-      width: 190px; height: 190px;
-      left: 82%; top: 70%;
-      animation-duration: 26s;
-      animation-delay: 3s;
-    }
-
-    @keyframes softFloat {
-      0%   { transform: translate3d(0px, 0px, 0) scale(1); opacity: 0.55; }
-      50%  { transform: translate3d(30px, -40px, 0) scale(1.1); opacity: 0.95; }
-      100% { transform: translate3d(0px, 0px, 0) scale(1); opacity: 0.55; }
-    }
-
-    .hero-inner {
-      position: relative;
-      z-index: 10;
-    }
-
-    .hero-tilt {
-      transition: transform 0.25s ease-out;
-      transform-style: preserve-3d;
-    }
-
-    /* small glow ring behind text */
-    .hero-ring {
-      position: absolute;
-      width: 380px;
-      height: 380px;
-      border-radius: 999px;
-      background: radial-gradient(circle, rgba(34,211,238,0.18), transparent 70%);
-      filter: blur(30px);
-      top: 45%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      opacity: 0.8;
-      pointer-events: none;
-    }
-
-    @media (max-width: 640px) {
-      .hero-ring {
-        width: 260px;
-        height: 260px;
-      }
-    }
-  </style>
+}
+</style>
 </head>
 
-<body class="bg-gray-950 text-gray-100 antialiased">
+<body class="antialiased">
 
-  <!-- NAVBAR -->
-  <header class="sticky top-0 z-40 bg-gray-950/90 backdrop-blur border-b border-gray-800">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/10 border border-cyan-400/40">
-          <span class="h-2.5 w-2.5 rounded-full bg-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.9)]"></span>
-        </span>
-        <span class="font-black tracking-tight text-xl text-cyan-300 cursor-pointer" onclick="showSection('home')">
-          officeworkhelp.in
-        </span>
-      </div>
-      <nav class="flex items-center gap-4 text-sm">
-        <button class="text-gray-300 hover:text-cyan-300 transition-colors" onclick="showSection('home')">Home</button>
-        <button class="text-gray-300 hover:text-cyan-300 transition-colors" onclick="showSection('tools')">Tools</button>
-        <button class="text-gray-300 hover:text-cyan-300 transition-colors" onclick="showSection('bulk-sender')">
-          Bulk Email Sender
-        </button>
-        <button class="text-gray-300 hover:text-cyan-300 transition-colors" onclick="showSection('about')">About</button>
-        <button class="ml-3 glow-button px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-cyan-500/10 text-cyan-300 hover:text-white"
-                onclick="showSection('bulk-sender')">
-          Launch App
-        </button>
-      </nav>
+<!-- FLOATING BUBBLES -->
+<div id="bubble-container" class="fixed inset-0 overflow-hidden pointer-events-none -z-10"></div>
+
+<!-- NAVIGATION BAR -->
+<header class="sticky top-0 bg-gray-900/60 backdrop-blur-md border-b border-gray-700 z-50">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+        <!-- LOGO -->
+        <h1 onclick="showSection('home')"
+            class="text-2xl font-black text-bubble-teal cursor-pointer">
+            officeworkhelp.in
+        </h1>
+
+        <!-- NAVIGATION -->
+        <nav class="flex gap-8 items-center text-gray-300">
+
+            <button onclick="showSection('home')" class="nav-link">
+                Home
+            </button>
+
+            <!-- ---- TOOLS DROPDOWN ---- -->
+            <div class="dropdown">
+
+                <button id="toolsBtn" class="nav-link flex items-center gap-1">
+                    Tools
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+
+                <!-- Dropdown menu -->
+                <div id="toolsDropdown" class="dropdown-menu">
+
+                    <div class="dropdown-item"
+                        onclick="showSection('bulk-email'); closeDropdown();">
+                        Bulk Email Sender
+                    </div>
+
+                    <div class="dropdown-item opacity-50 cursor-not-allowed">
+                        Report Formatter (coming soon)
+                    </div>
+
+                    <div class="dropdown-item opacity-50 cursor-not-allowed">
+                        Data Sync Assistant (coming soon)
+                    </div>
+
+                </div>
+            </div>
+
+            <button onclick="showSection('about')" class="nav-link">
+                About Me
+            </button>
+        </nav>
+
     </div>
-  </header>
+</header>
 
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-16">
+<!-- MAIN CONTENT -->
+<main class="max-w-6xl mx-auto px-6 pt-12">
 
-    <!-- ================= HOME (FUTURISTIC HERO) ================= -->
-    <section id="home" class="space-y-10">
-      <div id="hero" class="hero-wrapper hero-tilt px-6 py-12 sm:px-10 sm:py-16">
+<!-- =======================
+       HOME SECTION
+======================= -->
+<section id="home" class="active-section fade-in min-h-[80vh] flex flex-col justify-center text-center">
 
-        <!-- Soft bubbles -->
-        <div class="hero-bubble"></div>
-        <div class="hero-bubble"></div>
-        <div class="hero-bubble"></div>
-        <div class="hero-bubble"></div>
-        <div class="hero-bubble"></div>
+    <h2 class="text-5xl sm:text-7xl font-extrabold text-white drop-shadow mb-6 leading-tight">
+        Helping hard work meet smart work
+    </h2>
 
-        <div class="hero-overlay"></div>
-        <div class="hero-ring"></div>
+    <p class="text-gray-400 text-lg max-w-2xl mx-auto">
+        Automating boring office tasks so you can focus on what truly matters.
+    </p>
 
-        <div class="hero-inner relative text-center">
-          <p class="text-cyan-300 text-xs sm:text-sm font-mono tracking-[0.35em] uppercase mb-4">
-            ENGINEERING PRODUCTIVITY · FOR FREE
-          </p>
+    <button onclick="showSection('tools')"
+        class="mt-8 px-8 py-3 rounded-xl bg-bubble-teal/20 text-bubble-teal border 
+               border-bubble-teal hover:bg-bubble-teal hover:text-black transition font-semibold">
+        Explore Tools →
+    </button>
+</section>
+<!-- =======================
+       TOOLS DIRECTORY
+======================= -->
+<section id="tools" class="hidden-section fade-in min-h-[80vh] pt-6">
 
-          <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-cyan-100 via-white to-cyan-200 drop-shadow-[0_0_22px_rgba(8,145,178,0.75)]">
-            Helping hard work meet smart work
-          </h1>
+    <p class="text-bubble-teal text-sm font-mono tracking-widest mb-2">FREE TOOL SUITE</p>
+    <h2 class="text-4xl font-bold mb-10">Select a Productivity Tool</h2>
 
-          <p class="mt-4 text-sm sm:text-base text-gray-300 max-w-2xl mx-auto">
-            Turn repetitive office routines into streamlined, automated flows. Build once, reuse forever.
-          </p>
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
 
-          <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <button class="glow-button px-6 py-2.5 rounded-xl bg-cyan-500/15 text-cyan-200 text-sm font-semibold hover:text-white"
-                    onclick="showSection('tools')">
-              Browse Free Tools
-            </button>
-            <button class="px-6 py-2.5 rounded-xl border border-gray-700 text-gray-300 text-sm hover:border-cyan-400 hover:text-cyan-200 transition"
-                    onclick="showSection('bulk-sender')">
-              Go to Bulk Email Sender →
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="tool-card">
-          <h2 class="text-lg font-semibold text-red-400 mb-3">The Pain</h2>
-          <ul class="space-y-2 text-xs sm:text-sm text-gray-300">
-            <li>● Manually sending dozens of personalized emails one by one.</li>
-            <li>● Constantly hunting for the right attachment per recipient.</li>
-            <li>● Copy-paste errors that slip into important communication.</li>
-            <li>● Time lost on tasks that could have been automated once.</li>
-          </ul>
-        </div>
-        <div class="tool-card">
-          <h2 class="text-lg font-semibold text-cyan-300 mb-3">The Shift</h2>
-          <p class="text-xs sm:text-sm text-gray-300">
-            Instead of repeating the same steps every month, semester, or batch—
-            configure once, load an Excel, and let the system do the repetitive work for you.
-          </p>
-        </div>
-        <div class="tool-card">
-          <h2 class="text-lg font-semibold text-emerald-300 mb-3">The Result</h2>
-          <ul class="space-y-2 text-xs sm:text-sm text-gray-300">
-            <li>● Hours saved every cycle.</li>
-            <li>● Fewer errors, more confidence.</li>
-            <li>● Cleaner, more consistent communication.</li>
-            <li>● Time back for work that actually needs you.</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= TOOLS DIRECTORY ================= -->
-    <section id="tools" class="hidden-section space-y-8">
-      <div>
-        <p class="text-xs font-mono tracking-[0.3em] uppercase text-cyan-400 mb-2">Tool Suite</p>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Pick a workflow helper</h2>
-        <p class="text-sm text-gray-400 mt-2">
-          Start with the tool that removes the most repetitive work from your week.
-        </p>
-      </div>
-
-      <div class="grid gap-6 md:grid-cols-3">
-        <!-- Bulk Email Sender tool card -->
-        <div class="tool-card cursor-pointer hover:border-cyan-400/70 transition"
-             onclick="showSection('bulk-sender')">
-          <h3 class="text-lg font-semibold text-cyan-300 mb-1">
-            Bulk Email Sender with Attachments
-          </h3>
-          <p class="text-xs sm:text-sm text-gray-300 mb-3">
-            Send customized emails where each recipient gets their own specific attachment, defined via an .xlsx sheet.
-          </p>
-          <div class="flex items-center justify-between text-xs text-gray-400">
-            <span>Status: <span class="text-emerald-400">Live</span></span>
-            <span class="text-cyan-300 font-semibold">Open Tool →</span>
-          </div>
-        </div>
-
-        <!-- Placeholder tool -->
-        <div class="tool-card opacity-60 border-dashed">
-          <h3 class="text-lg font-semibold text-gray-400 mb-1">
-            Report Formatter (Coming Soon)
-          </h3>
-          <p class="text-xs sm:text-sm text-gray-500 mb-3">
-            Turn raw data into clean formatted PDF / DOC reports automatically.
-          </p>
-          <span class="text-xs text-yellow-400">In design phase</span>
-        </div>
-
-        <!-- Placeholder tool -->
-        <div class="tool-card opacity-60 border-dashed">
-          <h3 class="text-lg font-semibold text-gray-400 mb-1">
-            Data Sync Assistant (Coming Soon)
-          </h3>
-          <p class="text-xs sm:text-sm text-gray-500 mb-3">
-            Keep Google Sheets and local datasets in sync without manual exports.
-          </p>
-          <span class="text-xs text-yellow-400">Planned</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- ================= BULK SENDER APP ================= -->
-    <section id="bulk-sender" class="hidden-section space-y-8">
-      <div class="flex items-center justify-between gap-3 border-b border-gray-800 pb-4">
-        <div>
-          <p class="text-xs text-gray-500 mb-1">
-            <button class="text-gray-400 hover:text-cyan-300" onclick="showSection('tools')">
-              Tools
-            </button>
-            <span class="mx-1 text-gray-600">/</span>
-            <span class="text-gray-300">Bulk Email Sender with Attachments</span>
-          </p>
-          <h2 class="text-2xl sm:text-3xl font-extrabold text-cyan-300">
-            Bulk Email Sender with Attachments
-          </h2>
-          <p class="text-xs sm:text-sm text-gray-400 mt-1 max-w-xl">
-            Use an Excel performa to map each recipient to their email address and attachment name. 
-            Upload both data and files, then send everything in one go.
-          </p>
-        </div>
-        <button class="hidden sm:inline-flex text-xs text-gray-400 hover:text-cyan-300"
-                onclick="showSection('home')">
-          ← Back to Home
-        </button>
-      </div>
-
-      <div class="grid lg:grid-cols-2 gap-6 items-start">
-        <!-- LEFT COLUMN (LOGIN + PERFORMA + ATTACHMENTS) -->
-        <div class="space-y-6">
-          <!-- Login -->
-          <div class="tool-card">
-            <h3 class="text-lg font-semibold text-cyan-300 mb-2">1. Sign in with Google</h3>
-            <p class="text-xs sm:text-sm text-gray-400 mb-3">
-              Authorize this tool to send emails and read attachments from your Drive. This uses Google's official OAuth flow.
+        <!-- Bulk Email Sender Tool Card -->
+        <div onclick="showSection('bulk-email')"
+            class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl cursor-pointer 
+                   hover:border-bubble-teal transition hover:shadow-lg hover:shadow-bubble-teal/10">
+            <h3 class="text-2xl font-bold text-bubble-teal mb-2">Bulk Email Sender</h3>
+            <p class="text-gray-400 mb-4 text-sm">
+                Send personalized emails with attachments using an Excel performa.
             </p>
-            <div id="g_id_signin" class="mb-2"></div>
-            <div id="loginStatus" class="text-xs text-gray-400"></div>
-          </div>
-
-          <!-- Performa + Attachments -->
-          <div class="tool-card space-y-4">
-            <div>
-              <h3 class="text-lg font-semibold text-cyan-300 mb-1">2. Upload performa & attachments</h3>
-              <p class="text-xs text-gray-400">
-                Performa must have columns: <code>Name</code>, <code>Email</code>, <code>Attachment Name</code>.
-                Each attachment file name should match the Attachment Name.
-              </p>
-            </div>
-
-            <div class="space-y-2">
-              <button class="glow-button px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-200 text-xs sm:text-sm hover:text-white"
-                      onclick="downloadPerforma()">
-                Download Performa Template (.xlsx)
-              </button>
-            </div>
-
-            <!-- Performa -->
-            <div class="space-y-2">
-              <label class="text-xs font-semibold text-gray-300">Performa (.xlsx)</label>
-              <input type="file" id="fileInput" accept=".xlsx" />
-              <div id="dropZone">Drag &amp; drop Performa here or use the file picker above.</div>
-              <div id="fileInfo" class="text-xs text-gray-400 mt-1"></div>
-              <div id="tableContainer" class="mt-3 text-xs"></div>
-            </div>
-
-            <hr class="border-gray-800 my-2" />
-
-            <!-- Attachments -->
-            <div class="space-y-2">
-              <label class="text-xs font-semibold text-gray-300">Attachments</label>
-              <input type="file" id="attachmentInput" multiple />
-              <div id="attachmentDropZone">Drag &amp; drop all attachment files here.</div>
-              <div id="attachmentUploadStatus" class="text-xs text-gray-400 mt-1"></div>
-            </div>
-          </div>
+            <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
         </div>
 
-        <!-- RIGHT COLUMN (EMAIL CONTENT + SEND) -->
-        <div class="space-y-6">
-          <!-- Email content -->
-          <div class="tool-card space-y-3">
-            <h3 class="text-lg font-semibold text-cyan-300 mb-1">3. Email content</h3>
-            <div>
-              <label class="text-xs font-semibold text-gray-300 mb-1 block">Subject</label>
-              <input id="subject" type="text" value="Your Document" />
+        <!-- Placeholder Tool -->
+        <div class="p-6 bg-gray-800/30 border border-gray-700/40 rounded-xl opacity-60">
+            <h3 class="text-2xl font-bold text-gray-500 mb-2">Report Formatter</h3>
+            <p class="text-gray-600 text-sm">Coming soon…</p>
+        </div>
+
+        <!-- Placeholder Tool -->
+        <div class="p-6 bg-gray-800/30 border border-gray-700/40 rounded-xl opacity-60">
+            <h3 class="text-2xl font-bold text-gray-500 mb-2">Data Sync Assistant</h3>
+            <p class="text-gray-600 text-sm">Coming soon…</p>
+        </div>
+
+    </div>
+</section>
+
+
+
+<!-- =======================
+   BULK EMAIL SENDER TOOL
+======================= -->
+<section id="bulk-email" class="hidden-section fade-in min-h-[80vh]">
+
+    <div class="mb-10">
+        <p class="text-gray-400 text-sm mb-1">
+            <span class="hover:text-bubble-teal cursor-pointer" onclick="showSection('tools')">Tools</span>
+            / Bulk Email Sender with Attachments
+        </p>
+        <h2 class="text-4xl font-extrabold text-bubble-teal">Bulk Email Sender with Attachments</h2>
+        <p class="text-gray-400 max-w-3xl mt-2">
+            Use an Excel performa to map each recipient to their email address and attachment file name.
+        </p>
+    </div>
+
+
+    <div class="space-y-8">
+
+        <!-- 1. SIGN IN WITH GOOGLE -->
+        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+            <h3 class="text-xl font-bold text-bubble-teal mb-3">1. Sign in with Google</h3>
+            <p class="text-gray-400 text-sm mb-3">
+                Authorize this tool to send emails and fetch attachments from your Drive.
+            </p>
+
+            <div id="g_id_signin"></div>
+            <div id="loginStatus" class="text-sm text-gray-400 mt-2"></div>
+        </div>
+
+
+        <!-- 2. PERFORMA + ATTACHMENTS -->
+        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+
+            <h3 class="text-xl font-bold text-bubble-teal mb-3">2. Upload Performa & Attachments</h3>
+
+            <!-- Download Template -->
+            <button onclick="downloadPerforma()"
+                class="mb-4 px-4 py-2 rounded-lg bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
+                       hover:bg-bubble-teal hover:text-black transition">
+                Download Template Performa (.xlsx)
+            </button>
+
+            <!-- Performa Upload -->
+            <label class="block font-semibold text-gray-300 mb-1">Upload Performa (.xlsx):</label>
+            <input type="file" id="fileInput" accept=".xlsx" class="mb-2" />
+
+            <div id="dropZone"
+                 class="border-2 border-dashed border-gray-600 p-4 rounded-lg text-center">
+                Drag & drop Performa here
             </div>
-            <div>
-              <label class="text-xs font-semibold text-gray-300 mb-1 block">
-                HTML Message
-                <span class="text-gray-500 font-normal"> · you can use <code>{{Name}}</code></span>
-              </label>
-              <textarea id="editor" rows="8" class="font-mono text-xs">
+
+            <div id="fileInfo" class="text-gray-400 text-sm mt-2"></div>
+            <div id="tableContainer" class="mt-4"></div>
+
+            <hr class="my-6 border-gray-700">
+
+            <!-- Attachments Upload -->
+            <label class="block font-semibold text-gray-300 mb-1">Upload Attachments:</label>
+            <input type="file" id="attachmentInput" multiple class="mb-2" />
+
+            <div id="attachmentDropZone"
+                class="border-2 border-dashed border-gray-600 p-4 rounded-lg text-center">
+                Drag & drop attachments here
+            </div>
+
+            <div id="attachmentUploadStatus" class="text-gray-400 text-sm mt-2"></div>
+        </div>
+
+
+        <!-- 3. EMAIL CONTENT -->
+        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+            <h3 class="text-xl font-bold text-bubble-teal mb-3">3. Email Content</h3>
+
+            <label class="font-semibold text-gray-300">Subject:</label>
+            <input id="subject" type="text" value="Your Document"
+                class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg mb-5" />
+
+            <label class="font-semibold text-gray-300">Message (HTML allowed):</label>
+            <textarea id="editor" rows="6"
+                class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg font-mono text-sm">
 <p>Dear {{Name}},</p>
 <p>Your document is attached below.</p>
-<p>Regards,<br/>Office</p>
-              </textarea>
+<p>Regards,<br>Office</p>
+            </textarea>
+        </div>
+
+
+        <!-- 4. SEND EMAILS -->
+        <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+
+            <h3 class="text-xl font-bold text-bubble-teal mb-3">4. Send Emails</h3>
+
+            <!-- Daily quota indicator -->
+            <div id="quotaBar" class="text-sm text-gray-300 mb-3">
+                Daily Usage: <span id="quotaCount">0</span> / <span id="quotaLimit">100</span>
             </div>
-          </div>
 
-          <!-- Send -->
-          <div class="tool-card space-y-3">
-            <h3 class="text-lg font-semibold text-cyan-300 mb-2">4. Send emails</h3>
-            <button id="sendBtn"
-                    class="glow-button px-5 py-2.5 rounded-xl bg-cyan-500/10 text-cyan-200 text-sm font-semibold opacity-60 cursor-not-allowed"
-                    disabled
-                    onclick="startBulkSend()">
-              Start Sending Emails
+            <button id="sendBtn" disabled onclick="startBulkSend()"
+                class="px-6 py-3 rounded-xl bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
+                       hover:bg-bubble-teal hover:text-black transition font-semibold">
+                Start Sending Emails
             </button>
 
-            <div id="progress" class="text-sm font-semibold text-cyan-300 mt-1"></div>
-            <div id="eta" class="text-xs text-gray-400"></div>
-            <div id="log" class="text-xs text-gray-500 font-mono mt-1"></div>
+            <div id="progress" class="text-bubble-teal font-semibold mt-4"></div>
+            <div id="eta" class="text-gray-400 text-sm mt-1"></div>
+            <div id="log" class="text-gray-500 text-sm font-mono mt-2"></div>
 
-            <button id="failedBtn"
-                    class="mt-3 px-4 py-1.5 rounded-lg text-xs font-semibold bg-red-600/80 text-white hover:bg-red-500"
-                    onclick="downloadFailed()">
-              Download Failed Rows (CSV)
+            <button id="failedBtn" onclick="downloadFailed()"
+                class="hidden mt-4 px-4 py-2 bg-red-600 text-white rounded-lg">
+                Download Failed Rows (CSV)
             </button>
-
-            <p class="text-[11px] text-gray-500 mt-2">
-              Note: Sending large batches may take some time depending on your Gmail and Apps Script quotas.
-            </p>
-          </div>
         </div>
-      </div>
-    </section>
-
-    <!-- ================= ABOUT ================= -->
-    <section id="about" class="hidden-section space-y-10">
-      <div>
-        <p class="text-xs font-mono tracking-[0.3em] uppercase text-cyan-400 mb-2">About</p>
-        <h2 class="text-2xl sm:text-3xl font-extrabold text-white">Who is behind officeworkhelp.in?</h2>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-8 items-center">
-        <div class="flex justify-center">
-          <div class="h-40 w-40 sm:h-52 sm:w-52 rounded-full bg-gradient-to-tr from-cyan-500/20 via-gray-900 to-emerald-500/20 border border-cyan-400/40 flex items-center justify-center text-xs text-gray-400">
-            Profile Image
-          </div>
-        </div>
-        <div class="md:col-span-2 space-y-4 text-sm sm:text-base text-gray-300">
-          <p>
-            Hi, I’m the person behind <span class="text-cyan-300 font-semibold">officeworkhelp.in</span>.
-            I’ve watched too many people spend their talent on copy-paste work instead of the problems that actually need their brains.
-          </p>
-          <p>
-            This project started as a set of small scripts to help colleagues handle repetitive emails, data cleanup,
-            and reporting. Over time, I realized these “small” tools were quietly saving dozens of hours every month.
-          </p>
-          <p>
-            The mission is simple: <span class="font-semibold text-white">make practical, no-nonsense automation available for free</span>,
-            with tools that feel lightweight but deliver real leverage in your daily workflow.
-          </p>
-          <button class="glow-button px-5 py-2 rounded-lg bg-cyan-500/10 text-cyan-200 text-xs sm:text-sm hover:text-white">
-            Connect on LinkedIn
-          </button>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- FOOTER -->
-  <footer class="border-t border-gray-800 bg-gray-950/95 mt-10">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 text-center text-[11px] sm:text-xs text-gray-500">
-      © 2025 officeworkhelp.in · Helping hard work meet smart work.
     </div>
-  </footer>
+</section>
 
-  <!-- Success sound -->
-  <audio id="successSound">
-    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg" />
-  </audio>
 
-  <script>
-    /* ========= CONFIG ========= */
-    const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
-    const SCRIPT_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
 
-    let accessToken = null;
-    let sheetRows = [];
-    let failedRows = [];
-    let sending = false;
+<!-- =======================
+        ABOUT ME
+======================= -->
+<section id="about" class="hidden-section fade-in min-h-[80vh] py-12">
 
-    const SECTIONS = ['home', 'tools', 'bulk-sender', 'about'];
+    <p class="text-bubble-teal text-sm font-mono tracking-widest mb-4">THE FOUNDER</p>
+    <h2 class="text-4xl font-extrabold mb-10">Who is officeworkhelp.in?</h2>
 
-    function showSection(id) {
-      SECTIONS.forEach(secId => {
+    <div class="grid md:grid-cols-3 gap-12 items-center">
+
+        <!-- PROFILE IMAGE -->
+        <div class="flex justify-center">
+            <img src="https://drive.google.com/uc?export=view&id=1LNKUmmTxJUx9NAE2UgNQDNAHesgFJrHD"
+                 class="w-64 h-64 rounded-full object-cover border-4 border-bubble-teal/50 
+                        shadow-xl shadow-bubble-teal/20" />
+        </div>
+
+        <!-- TEXT -->
+        <div class="md:col-span-2 space-y-5 text-gray-300 text-lg">
+
+            <p>
+                Hello! I’m the creator of officeworkhelp.in.
+                After years of seeing smart people waste 50% of their day on repetitive office tasks,
+                I decided to solve this problem through automation.
+            </p>
+
+            <p>
+                My mission is simple:
+                <strong class="text-bubble-teal">Help hard-working people achieve smart work through automation.</strong>
+            </p>
+
+            <a href="https://www.linkedin.com/in/chetan-sharma-4570a1100/" target="_blank"
+                class="inline-block px-6 py-2 rounded-lg bg-bubble-teal/20 text-bubble-teal 
+                       border border-bubble-teal hover:bg-bubble-teal hover:text-black transition font-semibold">
+                Connect on LinkedIn →
+            </a>
+
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- FOOTER -->
+<footer class="mt-12 border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+    © 2025 officeworkhelp.in · Helping hard work meet smart work.
+</footer>
+
+<!-- SUCCESS SOUND -->
+<audio id="successSound">
+    <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+</audio>
+
+<script>
+/* ========= GLOBAL CONFIG ========= */
+const CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
+const SCRIPT_WEBAPP_URL =
+  "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
+
+let accessToken = null;
+let sheetRows = [];
+let failedRows = [];
+let sending = false;
+
+const SECTIONS = ["home", "tools", "bulk-email", "about"];
+
+/* ========= SECTION SWITCHING ========= */
+function showSection(id) {
+    SECTIONS.forEach(secId => {
         const el = document.getElementById(secId);
         if (!el) return;
-        if (secId === id) el.classList.remove('hidden-section');
-        else el.classList.add('hidden-section');
-      });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    /* ========= INIT ========= */
-    document.addEventListener('DOMContentLoaded', () => {
-      // Default section
-      showSection('home');
-
-      // Google Identity - render button once SDK is ready
-      if (window.google && google.accounts && google.accounts.id) {
-        google.accounts.id.initialize({
-          client_id: CLIENT_ID,
-          callback: handleLogin
-        });
-        if (document.getElementById("g_id_signin")) {
-          google.accounts.id.renderButton(
-            document.getElementById("g_id_signin"),
-            { theme: "outline", size: "large" }
-          );
-        }
-      }
-
-      // Set up drag & drop handlers
-      setupPerformaDrag();
-      setupAttachmentDragDrop();
-
-      // Hero tilt & soft motion
-      const hero = document.getElementById('hero');
-      if (hero) {
-        hero.addEventListener('mousemove', (e) => {
-          const rect = hero.getBoundingClientRect();
-          const x = (e.clientX - rect.left) / rect.width - 0.5;
-          const y = (e.clientY - rect.top) / rect.height - 0.5;
-          hero.style.transform = `perspective(1100px) rotateX(${y * -8}deg) rotateY(${x * 10}deg) scale(1.01)`;
-        });
-        hero.addEventListener('mouseleave', () => {
-          hero.style.transform = `perspective(1100px) rotateX(0deg) rotateY(0deg) scale(1)`;
-        });
-      }
+        if (secId === id) el.classList.remove("hidden-section");
+        else el.classList.add("hidden-section");
     });
 
-    /* ========= LOGIN ========= */
-    function handleLogin() {
-      const status = document.getElementById("loginStatus");
-      if (status) status.innerText = "Requesting permissions…";
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
-      const tokenClient = google.accounts.oauth2.initTokenClient({
+    // Only show strong bubbles on home, dim elsewhere
+    const bubbleContainer = document.getElementById("bubble-container");
+    if (bubbleContainer) {
+        if (id === "home") {
+            bubbleContainer.style.opacity = "1";
+        } else {
+            bubbleContainer.style.opacity = "0.35";
+        }
+    }
+
+    // When entering Bulk Email section, ensure Google Sign-In is visible & drag/drop is wired
+    if (id === "bulk-email") {
+        initGoogleButton();
+        setupPerformaDrag();
+        setupAttachmentDragDrop();
+        updateSendButton();
+        updateQuotaDisplay();
+    }
+}
+
+/* ========= FLOATING BUBBLES BACKGROUND ========= */
+function spawnBubbles() {
+    const container = document.getElementById("bubble-container");
+    if (!container) return;
+
+    const bubbleCount = 14;
+
+    for (let i = 0; i < bubbleCount; i++) {
+        const b = document.createElement("div");
+        b.className = "bubble";
+
+        const size = 80 + Math.random() * 180; // 80-260px
+        const left = Math.random() * 100;      // 0-100vw
+        const delay = Math.random() * 15;      // 0-15s
+        const duration = 16 + Math.random() * 12; // 16-28s
+        const hue = 170 + Math.random() * 40;  // teal/blue hue
+
+        b.style.width = size + "px";
+        b.style.height = size + "px";
+        b.style.left = left + "vw";
+        b.style.bottom = "-260px";
+        b.style.background = `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.7), hsla(${hue}, 80%, 30%, 0.1))`;
+        b.style.animationDuration = duration + "s";
+        b.style.animationDelay = delay + "s";
+
+        container.appendChild(b);
+    }
+}
+
+/* ========= HYBRID TOOLS DROPDOWN (HOVER + CLICK) ========= */
+function setupDropdown() {
+    const toolsBtn = document.getElementById("toolsBtn");
+    const dropdown = document.getElementById("toolsDropdown");
+    if (!toolsBtn || !dropdown) return;
+
+    function toggleDropdown() {
+        // Mobile / click toggle
+        dropdown.classList.toggle("show");
+    }
+
+    function closeDropdown() {
+        dropdown.classList.remove("show");
+    }
+
+    // Expose closeDropdown globally for use in onclick inside HTML
+    window.closeDropdown = closeDropdown;
+
+    // Click behavior
+    toolsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleDropdown();
+    });
+
+    // Click outside to close
+    document.addEventListener("click", (e) => {
+        if (!dropdown.contains(e.target) && !toolsBtn.contains(e.target)) {
+            closeDropdown();
+        }
+    });
+}
+
+/* ========= GOOGLE SIGN-IN ========= */
+function initGoogleButton() {
+    const container = document.getElementById("g_id_signin");
+    if (!container) return;
+
+    // Don't render again if already has a button
+    if (container.childElementCount > 0) return;
+
+    if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({
+            client_id: CLIENT_ID,
+            callback: handleLogin
+        });
+        google.accounts.id.renderButton(container, { theme: "outline", size: "large" });
+    }
+}
+
+function handleLogin() {
+    const status = document.getElementById("loginStatus");
+    if (status) status.innerText = "Requesting permissions…";
+
+    const tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
         callback: (t) => {
-          accessToken = t.access_token;
-          if (status) status.innerText = "Login successful. Ready to send.";
-          updateSendButton();
+            accessToken = t.access_token;
+            if (status) status.innerText = "Login successful. Ready to send.";
+            updateSendButton();
         }
-      });
-      tokenClient.requestAccessToken();
-    }
+    });
+    tokenClient.requestAccessToken();
+}
 
-    /* ========= PERFORMA TEMPLATE DOWNLOAD ========= */
-    function downloadPerforma() {
-      const url = "https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Performa.xlsx";
-      a.click();
-    }
+/* ========= PERFORMA TEMPLATE DOWNLOAD ========= */
+function downloadPerforma() {
+    const url =
+      "https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Performa.xlsx";
+    a.click();
+}
 
-    /* ========= PERFORMA HANDLING ========= */
-    function setupPerformaDrag() {
-      const dz = document.getElementById("dropZone");
-      const fileInput = document.getElementById("fileInput");
-      if (!dz || !fileInput) return;
+/* ========= PERFORMA HANDLING ========= */
+function setupPerformaDrag() {
+    const dz = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    if (!dz || !fileInput) return;
 
-      dz.addEventListener("dragover", (e) => {
+    // Remove existing listeners by cloning (prevents duplicates on re-enter)
+    const newDz = dz.cloneNode(true);
+    dz.parentNode.replaceChild(newDz, dz);
+
+    const newFileInput = fileInput.cloneNode(true);
+    fileInput.parentNode.replaceChild(newFileInput, fileInput);
+
+    newDz.addEventListener("dragover", (e) => {
         e.preventDefault();
-        dz.classList.add("dragover");
-      });
-      dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
-      dz.addEventListener("drop", (e) => {
+        newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("dragleave", () => {
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("drop", (e) => {
         e.preventDefault();
-        dz.classList.remove("dragover");
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          handlePerformaFile(e.dataTransfer.files[0]);
+            handlePerformaFile(e.dataTransfer.files[0]);
         }
-      });
+    });
 
-      fileInput.addEventListener("change", (e) => {
+    newFileInput.addEventListener("change", (e) => {
         if (e.target.files && e.target.files[0]) {
-          handlePerformaFile(e.target.files[0]);
+            handlePerformaFile(e.target.files[0]);
         }
-      });
-    }
+    });
+}
 
-    function handlePerformaFile(file) {
-      const info = document.getElementById("fileInfo");
-      if (!file || !file.name.endsWith(".xlsx")) {
+function handlePerformaFile(file) {
+    const info = document.getElementById("fileInfo");
+    if (!file || !file.name.endsWith(".xlsx")) {
         if (info) info.innerText = "Please select a valid .xlsx file.";
         return;
-      }
-      if (info) info.innerText = "Loaded: " + file.name;
+    }
+    if (info) info.innerText = "Loaded: " + file.name;
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
         try {
-          const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-          if (json.length < 2) {
-            if (info) info.innerText = "No data rows found in the file.";
+            if (json.length < 2) {
+                if (info) info.innerText = "File has a header but no data rows.";
+                sheetRows = [];
+                renderTable([], []);
+                updateSendButton();
+                return;
+            }
+
+            // Expect: Name | Email | Attachment Name
+            const header = ["Name", "Email", "Attachment Name"];
+            const idx = { name: 0, email: 1, attach: 2 };
+
+            sheetRows = json.slice(1)
+                .map(row => ({
+                    name: row[idx.name] || "",
+                    email: row[idx.email] || "",
+                    attachmentName: row[idx.attach] || ""
+                }))
+                .filter(r => r.email);
+
+            renderTable(header, sheetRows.map(r => [r.name, r.email, r.attachmentName]));
+            updateSendButton();
+        } catch (err) {
+            console.error("Performa parse error:", err);
+            if (info) info.innerText = "Error processing file. Please check console.";
             sheetRows = [];
             renderTable([], []);
             updateSendButton();
-            return;
-          }
-
-          // Expecting: Name | Email | Attachment Name
-          const header = ["Name", "Email", "Attachment Name"];
-          const idx = { name: 0, email: 1, attach: 2 };
-
-          sheetRows = json.slice(1).map(row => ({
-            name: row[idx.name] || "",
-            email: row[idx.email] || "",
-            attachmentName: row[idx.attach] || ""
-          })).filter(r => r.email);
-
-          renderTable(header, sheetRows.map(r => [r.name, r.email, r.attachmentName]));
-          updateSendButton();
-        } catch (err) {
-          console.error("Performa parse error:", err);
-          if (info) info.innerText = "Error processing file. Check console for details.";
-          sheetRows = [];
-          renderTable([], []);
-          updateSendButton();
         }
-      };
+    };
 
-      reader.readAsArrayBuffer(file);
-    }
+    reader.readAsArrayBuffer(file);
+}
 
-    function renderTable(header, rows) {
-      const container = document.getElementById("tableContainer");
-      if (!container) return;
+function renderTable(header, rows) {
+    const container = document.getElementById("tableContainer");
+    if (!container) return;
 
-      if (!rows.length) {
-        container.innerHTML = '<p class="text-xs text-gray-500 mt-2">No valid data rows detected.</p>';
+    if (!rows.length) {
+        container.innerHTML = '<p class="text-gray-500 text-sm mt-2">No valid rows detected.</p>';
         return;
-      }
+    }
 
-      let html = '<p class="text-xs text-gray-400 mb-2">Previewing first 10 of ' + rows.length + ' rows:</p>';
-      html += '<div class="overflow-x-auto">';
-      html += '<table class="preview-table">';
-      html += '<thead><tr>';
-      header.forEach(h => html += '<th>' + h + '</th>');
-      html += '</tr></thead><tbody>';
+    let html = `<p class="text-gray-400 text-sm mb-2">Previewing first 10 of ${rows.length} rows:</p>`;
+    html += '<div class="overflow-x-auto">';
+    html += '<table class="w-full text-sm border border-gray-700 rounded-lg overflow-hidden">';
+    html += '<thead class="bg-gray-900"><tr>';
+    header.forEach(h => {
+        html += `<th class="px-3 py-2 text-left border-b border-gray-700 text-bubble-teal">${h}</th>`;
+    });
+    html += '</tr></thead><tbody>';
 
-      rows.slice(0, 10).forEach(r => {
-        html += '<tr>';
-        html += '<td>' + (r[0] || "") + '</td>';
-        html += '<td>' + (r[1] || "") + '</td>';
-        html += '<td>' + (r[2] || "") + '</td>';
+    rows.slice(0, 10).forEach(r => {
+        html += '<tr class="border-b border-gray-800 hover:bg-gray-900/60">';
+        html += `<td class="px-3 py-2">${r[0] || ""}</td>`;
+        html += `<td class="px-3 py-2">${r[1] || ""}</td>`;
+        html += `<td class="px-3 py-2">${r[2] || ""}</td>`;
         html += '</tr>';
-      });
+    });
 
-      html += '</tbody></table></div>';
-      container.innerHTML = html;
-    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
 
-    /* ========= ATTACHMENT UPLOAD ========= */
-    function setupAttachmentDragDrop() {
-      const dz = document.getElementById("attachmentDropZone");
-      const attachmentInput = document.getElementById("attachmentInput");
-      if (!dz || !attachmentInput) return;
+/* ========= ATTACHMENT UPLOAD ========= */
+function setupAttachmentDragDrop() {
+    const dz = document.getElementById("attachmentDropZone");
+    const attachmentInput = document.getElementById("attachmentInput");
+    if (!dz || !attachmentInput) return;
 
-      dz.addEventListener("dragover", (e) => {
+    const newDz = dz.cloneNode(true);
+    dz.parentNode.replaceChild(newDz, dz);
+
+    const newInput = attachmentInput.cloneNode(true);
+    attachmentInput.parentNode.replaceChild(newInput, attachmentInput);
+
+    newDz.addEventListener("dragover", (e) => {
         e.preventDefault();
-        dz.classList.add("dragover");
-      });
-      dz.addEventListener("dragleave", () => dz.classList.remove("dragover"));
-      dz.addEventListener("drop", (e) => {
+        newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("dragleave", () => {
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+    });
+    newDz.addEventListener("drop", (e) => {
         e.preventDefault();
-        dz.classList.remove("dragover");
+        newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
         if (e.dataTransfer.files && e.dataTransfer.files.length) {
-          uploadAttachments(e.dataTransfer.files);
+            uploadAttachments(e.dataTransfer.files);
         }
-      });
+    });
 
-      attachmentInput.addEventListener("change", (e) => {
+    newInput.addEventListener("change", (e) => {
         if (e.target.files && e.target.files.length) {
-          uploadAttachments(e.target.files);
+            uploadAttachments(e.target.files);
         }
-      });
-    }
+    });
+}
 
-    async function uploadAttachments(filesList) {
-      const status = document.getElementById("attachmentUploadStatus");
-      const files = Array.from(filesList || []);
-      if (!files.length) {
+async function uploadAttachments(filesList) {
+    const status = document.getElementById("attachmentUploadStatus");
+    const files = Array.from(filesList || []);
+    if (!files.length) {
         if (status) status.innerText = "No files selected.";
         return;
-      }
+    }
 
-      if (status) status.innerText = `Uploading ${files.length} file(s)…`;
+    if (status) status.innerText = `Uploading ${files.length} file(s)…`;
 
-      const formData = new FormData();
-      formData.append("mode", "uploadAttachments");
-      files.forEach(f => formData.append("files", f, f.name));
+    const formData = new FormData();
+    formData.append("mode", "uploadAttachments");
+    files.forEach(f => formData.append("files", f, f.name));
 
-      try {
+    try {
         const res = await fetch(SCRIPT_WEBAPP_URL, {
-          method: "POST",
-          body: formData
+            method: "POST",
+            body: formData
         });
         const data = await res.json();
         if (Array.isArray(data)) {
-          if (status) status.innerText = `Uploaded ${data.length} file(s) successfully.`;
-        } else if (data && typeof data === 'object') {
-          if (data.success === false && status) {
-            status.innerText = `Upload failed: ${data.error || "Server error"}`;
-          } else if (status) {
-            status.innerText = "Upload completed.";
-          }
-        } else if (status) {
-          status.innerText = "Upload completed.";
+            if (status) status.innerText = `Uploaded ${data.length} file(s) successfully.`;
+        } else if (data && typeof data === "object") {
+            if (data.success === false) {
+                if (status) status.innerText = `Upload failed: ${data.error || "Server error."}`;
+            } else {
+                if (status) status.innerText = "Upload completed.";
+            }
+        } else {
+            if (status) status.innerText = "Upload completed.";
         }
-      } catch (err) {
-        console.error("Upload error:", err);
-        if (status) status.innerText = "Upload failed. Check console for details.";
-      }
+    } catch (err) {
+        console.error("Attachment upload error:", err);
+        if (status) status.innerText = "Upload failed. See console.";
     }
+}
 
-    /* ========= SEND LOGIC ========= */
-    function updateSendButton() {
-      const sendBtn = document.getElementById("sendBtn");
-      if (!sendBtn) return;
+/* ========= DAILY QUOTA (LOCAL) ========= */
+const DAILY_LIMIT = 100;
+const QUOTA_DAY_KEY = "owh_quota_day";
+const QUOTA_COUNT_KEY = "owh_quota_count";
 
-      const subject = document.getElementById("subject")?.value.trim();
-      const msg = document.getElementById("editor")?.value.trim();
+function getTodayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
 
-      const ok = accessToken &&
-                 sheetRows.length > 0 &&
-                 subject &&
-                 msg &&
-                 !sending;
+function loadQuota() {
+    const today = getTodayKey();
+    const storedDay = localStorage.getItem(QUOTA_DAY_KEY);
+    let count = Number(localStorage.getItem(QUOTA_COUNT_KEY) || 0);
 
-      sendBtn.disabled = !ok;
-      if (ok) {
-        sendBtn.classList.remove('opacity-60', 'cursor-not-allowed');
-      } else {
-        sendBtn.classList.add('opacity-60', 'cursor-not-allowed');
-      }
+    if (storedDay !== today) {
+        count = 0;
+        localStorage.setItem(QUOTA_DAY_KEY, today);
+        localStorage.setItem(QUOTA_COUNT_KEY, "0");
     }
+    return count;
+}
 
-    async function startBulkSend() {
-      sending = true;
-      updateSendButton();
+function saveQuota(count) {
+    localStorage.setItem(QUOTA_COUNT_KEY, String(count));
+}
 
-      const failedBtn = document.getElementById("failedBtn");
-      if (failedBtn) failedBtn.style.display = "none";
+function quotaExceeded() {
+    return loadQuota() >= DAILY_LIMIT;
+}
 
-      const subject = document.getElementById("subject").value.trim();
-      const msg = document.getElementById("editor").value.trim();
+function incrementQuota() {
+    let count = loadQuota();
+    count++;
+    saveQuota(count);
+    updateQuotaDisplay();
+}
 
-      const total = sheetRows.length;
-      failedRows = [];
-      const startTime = Date.now();
+function updateQuotaDisplay() {
+    const used = loadQuota();
+    const countEl = document.getElementById("quotaCount");
+    const limitEl = document.getElementById("quotaLimit");
+    if (countEl) countEl.innerText = used;
+    if (limitEl) limitEl.innerText = DAILY_LIMIT;
+}
 
-      for (let i = 0; i < total; i++) {
+/* ========= SEND BUTTON ENABLE LOGIC ========= */
+function updateSendButton() {
+    const sendBtn = document.getElementById("sendBtn");
+    if (!sendBtn) return;
+
+    const subject = document.getElementById("subject")?.value.trim();
+    const msg = document.getElementById("editor")?.value.trim();
+
+    const ok = accessToken &&
+               sheetRows.length > 0 &&
+               subject &&
+               msg &&
+               !sending &&
+               !quotaExceeded();
+
+    sendBtn.disabled = !ok;
+
+    if (quotaExceeded()) {
+        sendBtn.textContent = "Daily Limit Reached";
+        sendBtn.classList.add("opacity-60", "cursor-not-allowed");
+    } else {
+        sendBtn.textContent = "Start Sending Emails";
+        if (ok) {
+            sendBtn.classList.remove("opacity-60", "cursor-not-allowed");
+        } else {
+            sendBtn.classList.add("opacity-60", "cursor-not-allowed");
+        }
+    }
+}
+
+/* ========= BULK SEND ========= */
+async function startBulkSend() {
+    sending = true;
+    updateSendButton();
+
+    const failedBtn = document.getElementById("failedBtn");
+    if (failedBtn) failedBtn.classList.add("hidden");
+
+    const subject = document.getElementById("subject").value.trim();
+    const msg = document.getElementById("editor").value.trim();
+
+    const total = sheetRows.length;
+    failedRows = [];
+    const startTime = Date.now();
+
+    for (let i = 0; i < total; i++) {
         const row = sheetRows[i];
-
         const htmlBody = msg.replace(/{{Name}}/g, row.name || "Sir/Madam");
 
         const progressEl = document.getElementById("progress");
@@ -845,7 +847,11 @@
         if (logEl) logEl.innerText = `Current: ${row.email}`;
 
         const ok = await sendOne(row, subject, htmlBody);
-        if (!ok) failedRows.push(row);
+        if (!ok) {
+            failedRows.push(row);
+        } else {
+            incrementQuota();
+        }
 
         const elapsed = (Date.now() - startTime) / 1000;
         const avg = elapsed / (i + 1);
@@ -853,76 +859,102 @@
         if (etaEl) etaEl.innerText = `Estimated time left: ${remaining}s`;
 
         await new Promise(res => setTimeout(res, 300));
-      }
-
-      sending = false;
-      updateSendButton();
-
-      const progressEl = document.getElementById("progress");
-      const logEl = document.getElementById("log");
-
-      if (!failedRows.length) {
-        if (progressEl) progressEl.innerText = "All emails sent successfully ✅";
-        const sound = document.getElementById("successSound");
-        sound && sound.play().catch(() => {});
-      } else {
-        if (progressEl) {
-          progressEl.innerText = `${total - failedRows.length}/${total} sent. ${failedRows.length} failed.`;
-        }
-        if (failedBtn) failedBtn.style.display = "inline-block";
-      }
-      if (logEl) logEl.innerText = "Done.";
-      const etaEl = document.getElementById("eta");
-      if (etaEl) etaEl.innerText = '';
     }
 
-    async function sendOne(row, subject, htmlBody) {
-      try {
+    sending = false;
+    updateSendButton();
+
+    const progressEl = document.getElementById("progress");
+    const logEl = document.getElementById("log");
+    const etaEl = document.getElementById("eta");
+
+    if (!failedRows.length) {
+        if (progressEl) progressEl.innerText = "All emails sent successfully ✅";
+        const sound = document.getElementById("successSound");
+        if (sound) sound.play().catch(() => {});
+    } else {
+        if (progressEl) {
+            progressEl.innerText =
+              `${total - failedRows.length}/${total} sent successfully, ${failedRows.length} failed.`;
+        }
+        if (failedBtn) failedBtn.classList.remove("hidden");
+    }
+
+    if (logEl) logEl.innerText = "Done.";
+    if (etaEl) etaEl.innerText = "";
+}
+
+/* ========= SEND ONE EMAIL VIA APPS SCRIPT ========= */
+async function sendOne(row, subject, htmlBody) {
+    try {
         const res = await fetch(SCRIPT_WEBAPP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mode: "sendEmailWithAttachmentName",
-            to: row.email,
-            subject,
-            htmlBody,
-            attachmentName: row.attachmentName,
-            accessToken
-          })
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                mode: "sendEmailWithAttachmentName",
+                to: row.email,
+                subject,
+                htmlBody,
+                attachmentName: row.attachmentName,
+                accessToken
+            })
         });
         const data = await res.json();
         return !!data.success;
-      } catch (err) {
+    } catch (err) {
         console.error("Send error for", row.email, err);
         return false;
-      }
     }
+}
 
-    /* ========= FAILED CSV ========= */
-    function downloadFailed() {
-      if (!failedRows.length) return;
+/* ========= DOWNLOAD FAILED CSV ========= */
+function downloadFailed() {
+    if (!failedRows.length) return;
 
-      let csv = "Name,Email,Attachment Name\n";
-      failedRows.forEach(r => {
+    let csv = "Name,Email,Attachment Name\n";
+    failedRows.forEach(r => {
         csv += `"${r.name}","${r.email}","${r.attachmentName}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "failed_rows.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    // Keep the send button reactive if user edits content
-    document.addEventListener('input', (e) => {
-      if (['subject', 'editor'].includes(e.target.id)) {
-        updateSendButton();
-      }
     });
-  </script>
+
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "failed_rows.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+/* ========= INITIALIZATION ========= */
+document.addEventListener("DOMContentLoaded", () => {
+    // Default section
+    showSection("home");
+
+    // Background bubbles
+    spawnBubbles();
+
+    // Dropdown hybrid behavior
+    setupDropdown();
+
+    // Initialize Google sign-in button (if library loaded early)
+    initGoogleButton();
+
+    // Setup file drag & drop now (also re-wired when entering bulk-email)
+    setupPerformaDrag();
+    setupAttachmentDragDrop();
+
+    // Initial quota display
+    updateQuotaDisplay();
+
+    // Ensure send button reacts if user types subject/body before login
+    document.addEventListener("input", (e) => {
+        if (e.target.id === "subject" || e.target.id === "editor") {
+            updateSendButton();
+        }
+    });
+});
+</script>
+
 </body>
 </html>

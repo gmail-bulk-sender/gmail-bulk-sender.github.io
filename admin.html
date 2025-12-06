@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard – officeworkhelp.in</title>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { sans: ['Inter', 'sans-serif'] },
+      colors: { 'bubble-teal': '#3ef0e8' }
+    }
+  }
+}
+</script>
+
+<style>
+body { background:#020617; color:#e2e8f0; font-family:'Inter',sans-serif; }
+.bubble{position:absolute;border-radius:50%;opacity:.55;filter:blur(4px);animation:floatUp 18s infinite ease-in;}
+@keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:.3;}50%{opacity:.65;}100%{transform:translateY(-150vh) scale(1.4);opacity:0;}}
+.nav-link:hover{color:#3ef0e8;}
+.dropdown{position:relative;}
+.dropdown-menu{position:absolute;top:2.6rem;right:0;background:#0f172a;border:1px solid #334155;border-radius:.5rem;
+  padding:.5rem 0;width:220px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:.25s;z-index:50;}
+.dropdown-item{padding:.6rem 1rem;font-size:.9rem;color:#94a3b8;}
+.dropdown-item:hover{background:#1e293b;color:#3ef0e8;}
+.dropdown-menu.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+</style>
+</head>
+
+<body>
+
+<div id="bubble-container" class="fixed inset-0 -z-10 overflow-hidden pointer-events-none"></div>
+
+<header class="sticky top-0 bg-gray-900/60 backdrop-blur-md border-b border-gray-700 z-40">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <a href="index.html" class="text-2xl font-black text-bubble-teal">officeworkhelp.in</a>
+
+    <nav class="flex gap-8 text-gray-300">
+      <a href="index.html" class="nav-link">Home</a>
+
+      <div class="dropdown">
+        <button id="toolsBtn" class="nav-link flex items-center gap-1">Tools
+          <svg width="14" height="14" stroke="currentColor" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9" fill="none" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <div id="toolsDropdown" class="dropdown-menu">
+          <a class="dropdown-item" href="tools.html">All Tools</a>
+          <a class="dropdown-item" href="bulk-email.html">Bulk Email Sender</a>
+          <a class="dropdown-item" href="incident-report.html">Incident Report Formatter</a>
+          <a class="dropdown-item" href="admin.html">Admin Dashboard</a>
+        </div>
+      </div>
+
+      <a href="about.html" class="nav-link">About Me</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-6 py-10">
+
+  <h2 class="text-4xl font-extrabold text-bubble-teal mb-6">Incident Admin Dashboard</h2>
+
+  <div id="adminLoginBox" class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl max-w-md">
+    <h3 class="text-xl font-bold mb-2">Admin Login Required</h3>
+    <p class="text-gray-400 text-sm mb-4">
+      Only the authorized admin account can view & delete incident reports.
+    </p>
+    <div id="adminSignIn"></div>
+    <p id="adminStatus" class="text-gray-400 text-sm mt-2"></p>
+  </div>
+
+  <div id="adminPanel" class="hidden">
+    <table class="w-full text-sm border border-gray-700 mt-8">
+      <thead class="bg-gray-900">
+        <tr>
+          <th class="px-3 py-2 border-b border-gray-700">Summary</th>
+          <th class="px-3 py-2 border-b border-gray-700">Datetime</th>
+          <th class="px-3 py-2 border-b border-gray-700">Officer</th>
+          <th class="px-3 py-2 border-b border-gray-700">User Email</th>
+          <th class="px-3 py-2 border-b border-gray-700">AuthSig</th>
+          <th class="px-3 py-2 border-b border-gray-700">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="adminTable"></tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer class="mt-12 border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+  © 2025 officeworkhelp.in · Helping hard work meet smart work.
+</footer>
+
+<script>
+const ADMIN_CLIENT_ID = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
+const ADMIN_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
+
+let adminEmail = null;
+
+function initAdminLogin() {
+  google.accounts.id.initialize({
+    client_id: ADMIN_CLIENT_ID,
+    callback: adminLogin
+  });
+
+  google.accounts.id.renderButton(
+    document.getElementById("adminSignIn"),
+    { theme: "outline", size: "large" }
+  );
+}
+
+function adminLogin(resp) {
+  const idToken = resp.credential;
+
+  const payload = JSON.parse(atob(idToken.split(".")[1]));
+  adminEmail = payload.email;
+
+  if (adminEmail !== "sche004@gmail.com") {
+    document.getElementById("adminStatus").innerText = "Access Denied.";
+    return;
+  }
+
+  document.getElementById("adminLoginBox").classList.add("hidden");
+  document.getElementById("adminPanel").classList.remove("hidden");
+
+  loadReports();
+}
+
+async function loadReports() {
+  const res = await fetch(ADMIN_SCRIPT_URL + "?mode=getReports");
+  const data = await res.json();
+
+  const tbody = document.getElementById("adminTable");
+  tbody.innerHTML = "";
+
+  data.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="border-b border-gray-800 px-3 py-2">${r.summary}</td>
+      <td class="border-b border-gray-800 px-3 py-2">${r.datetime}</td>
+      <td class="border-b border-gray-800 px-3 py-2">${r.officer}</td>
+      <td class="border-b border-gray-800 px-3 py-2">${r.userEmail || "—"}</td>
+      <td class="border-b border-gray-800 px-3 py-2">${r.authSig || ""}</td>
+      <td class="border-b border-gray-800 px-3 py-2">
+        <button onclick="deleteReport('${r.id}')"
+                class="px-3 py-1 bg-red-600 text-white rounded-lg">
+          Delete
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function deleteReport(id) {
+  await fetch(ADMIN_SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ mode: "deleteReport", id })
+  });
+  loadReports();
+}
+
+function spawnBubbles(){
+  const c=document.getElementById("bubble-container");
+  for(let i=0;i<14;i++){
+    const b=document.createElement("div");
+    b.className="bubble";
+    const s=80+Math.random()*180;
+    b.style.width=s+"px";
+    b.style.height=s+"px";
+    b.style.left=Math.random()*100+"vw";
+    b.style.bottom="-260px";
+    b.style.animationDuration=(16+Math.random()*12)+"s";
+    b.style.animationDelay=Math.random()*15+"s";
+    b.style.background=`radial-gradient(circle, rgba(255,255,255,0.7),
+      hsla(${170+Math.random()*40},80%,30%,0.1))`;
+    c.appendChild(b);
+  }
+}
+
+function setupDropdown(){
+  const b=document.getElementById("toolsBtn");
+  const m=document.getElementById("toolsDropdown");
+  b.addEventListener("click",e=>{
+    e.stopPropagation();m.classList.toggle("show");
+  });
+  document.addEventListener("click",e=>{
+    if(!m.contains(e.target)&&!b.contains(e.target))m.classList.remove("show");
+  });
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  spawnBubbles();
+  setupDropdown();
+});
+
+window.onload = () => initAdminLogin();
+</script>
+</body>
+</html>

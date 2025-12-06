@@ -368,40 +368,12 @@
       </p>
       <h2 class="text-4xl font-extrabold text-bubble-teal">Incident Report Formatter</h2>
       <p class="text-gray-400 max-w-3xl mt-2">
-          Generate a professional, authenticated incident report with photos, event descriptions, and auto-formalized language.
+          Generate a professional incident report with photos, event descriptions, and auto-formalized language.
       </p>
   </div>
 
-  <!-- LOGIN REQUIRED -->
-  <div id="ir-login-gate"
-      class="bg-gray-800/60 border border-gray-700 rounded-xl p-6 text-center mb-8">
-      <h3 class="text-xl font-bold text-bubble-teal mb-3">Sign in to Access This Tool</h3>
-      <p class="text-gray-400 text-sm mb-4">
-          Authentication is mandatory. Every report will include a verified Google identity block.
-      </p>
-
-      <div id="ir-google-signin"></div>
-
-      <p id="ir-login-status" class="text-sm text-gray-400 mt-3"></p>
-  </div>
-
-  <!-- USER INFO AFTER LOGIN -->
-  <div id="ir-user-info"
-      class="hidden bg-gray-800/40 border border-gray-700 rounded-xl p-4 flex items-center gap-4 mb-8">
-      <img id="ir-user-photo" src="" class="w-12 h-12 rounded-full border border-gray-700" />
-      <div>
-          <p id="ir-user-name" class="font-semibold text-gray-200"></p>
-          <p id="ir-user-email" class="text-sm text-gray-400"></p>
-      </div>
-
-      <button onclick="irLogout()"
-          class="ml-auto px-3 py-1.5 text-xs rounded-lg bg-red-600 text-white hover:bg-red-700">
-          Logout
-      </button>
-  </div>
-
-  <!-- MAIN TOOL UI -->
-  <div id="ir-tool-container" class="hidden grid lg:grid-cols-2 gap-8 items-start">
+  <!-- MAIN TOOL UI (NO LOGIN REQUIRED) -->
+  <div id="ir-tool-container" class="grid lg:grid-cols-2 gap-8 items-start">
 
       <!-- LEFT PANEL — FORM -->
       <div class="bg-gray-800/40 border border-gray-700 rounded-xl p-6 space-y-6">
@@ -662,11 +634,11 @@
    GLOBAL CONFIG + SHARED STATE
 ============================================================ */
 const BULK_EMAIL_CLIENT_ID  = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
-const INCIDENT_CLIENT_ID    = "863520838078-d3h4oqr2rmjt4n0eq7qmr82tqthplhkl.apps.googleusercontent.com"; // <-- EDIT ME
+const INCIDENT_CLIENT_ID    = "863520838078-d3h4oqr2rmjt4n0eq7qmr82tqthplhkl.apps.googleusercontent.com";
 const IR_ADMIN_EMAIL        = "sche004@gmail.com";
 
 const SCRIPT_WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
-const INCIDENT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyZuW2ib2CvQZOcEfpg_4pIGJQWcsqGMyItOwqyUiqfsMMAmjiRIvw4_vAPL7xQJIohg/exec";   // <-- EDIT ME
+const INCIDENT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwyZuW2ib2CvQZOcEfpg_4pIGJQWcsqGMyItOwqyUiqfsMMAmjiRIvw4_vAPL7xQJIohg/exec";
 
 const SECTIONS = ["home", "tools", "bulk-email", "report-formatter", "ir-admin", "about"];
 
@@ -676,10 +648,7 @@ let sheetRows = [];
 let failedRows = [];
 let sending = false;
 
-/* Incident Report state */
-let IR_USER = null;
-let IR_LOGIN_TIME = null;
-let IR_AUTH_SIG = null;
+/* Incident Report state (no login) */
 let IR_PHOTOS = [];
 let irAutoSaveTimer = null;
 
@@ -1193,76 +1162,11 @@ function downloadFailed() {
 }
 
 /* ============================================================
-   INCIDENT REPORT — AUTH + FORMALIZE + PREVIEW + AUTOSAVE
+   INCIDENT REPORT — FORMALIZE + PREVIEW + AUTOSAVE (NO LOGIN)
 ============================================================ */
-function irInitGoogleButton() {
-  const container = document.getElementById("ir-google-signin");
-  if (!container) return;
-  if (container.getAttribute("data-rendered") === "true") return;
-  if (!window.google || !google.accounts || !google.accounts.id) return;
-
-  google.accounts.id.initialize({
-      client_id: INCIDENT_CLIENT_ID,
-      callback: irHandleLogin
-  });
-
-  google.accounts.id.renderButton(container, {
-      theme: "outline",
-      size: "large",
-      width: 260
-  });
-
-  container.setAttribute("data-rendered", "true");
-}
-
-function irHandleLogin(response) {
-  const jwt = parseJwt(response.credential);
-
-  IR_USER = {
-      name: jwt.name,
-      email: jwt.email,
-      picture: jwt.picture,
-      id: jwt.sub
-  };
-
-  IR_LOGIN_TIME = new Date();
-
-  document.getElementById("ir-login-gate").classList.add("hidden");
-  document.getElementById("ir-user-info").classList.remove("hidden");
-  document.getElementById("ir-tool-container").classList.remove("hidden");
-
-  document.getElementById("ir-user-name").textContent = IR_USER.name;
-  document.getElementById("ir-user-email").textContent = IR_USER.email;
-  document.getElementById("ir-user-photo").src = IR_USER.picture;
-
-  irUpdatePreview();
-}
-
-function irLogout() {
-  IR_USER = null;
-  IR_LOGIN_TIME = null;
-  IR_AUTH_SIG = null;
-
-  document.getElementById("ir-user-info").classList.add("hidden");
-  document.getElementById("ir-login-gate").classList.remove("hidden");
-  document.getElementById("ir-tool-container").classList.add("hidden");
-  document.getElementById("ir-preview").innerHTML = "";
-  document.getElementById("ir-save-status").textContent = "";
-}
-
 function irActivateSection() {
-  irInitGoogleButton();
-
-  if (!IR_USER) {
-      document.getElementById("ir-login-gate").classList.remove("hidden");
-      document.getElementById("ir-user-info").classList.add("hidden");
-      document.getElementById("ir-tool-container").classList.add("hidden");
-  } else {
-      document.getElementById("ir-login-gate").classList.add("hidden");
-      document.getElementById("ir-user-info").classList.remove("hidden");
-      document.getElementById("ir-tool-container").classList.remove("hidden");
-  }
-
+  const container = document.getElementById("ir-tool-container");
+  if (container) container.classList.remove("hidden");
   irUpdatePreview();
 }
 
@@ -1288,34 +1192,17 @@ function irUpdatePreview() {
   const p = document.getElementById("ir-preview");
   if (!p) return;
 
-  if (!IR_USER) {
-      p.innerHTML = "<p class='text-gray-500 text-sm'>Please sign in to start filling the report.</p>";
-      return;
-  }
-
-  const summary        = document.getElementById("ir-summary").value.trim();
-  const datetime       = document.getElementById("ir-datetime").value.trim();
-  const location       = document.getElementById("ir-location").value.trim();
-  const persons        = document.getElementById("ir-persons").value.trim();
-  const rawDescription = document.getElementById("ir-description-raw").value.trim();
-  const actions        = document.getElementById("ir-actions").value.trim();
-  const damage         = document.getElementById("ir-damage").value.trim();
-  const witness        = document.getElementById("ir-witness").value.trim();
-  const officer        = document.getElementById("ir-officer").value.trim();
+  const summary        = (document.getElementById("ir-summary")?.value || "").trim();
+  const datetime       = (document.getElementById("ir-datetime")?.value || "").trim();
+  const location       = (document.getElementById("ir-location")?.value || "").trim();
+  const persons        = (document.getElementById("ir-persons")?.value || "").trim();
+  const rawDescription = (document.getElementById("ir-description-raw")?.value || "").trim();
+  const actions        = (document.getElementById("ir-actions")?.value || "").trim();
+  const damage         = (document.getElementById("ir-damage")?.value || "").trim();
+  const witness        = (document.getElementById("ir-witness")?.value || "").trim();
+  const officer        = (document.getElementById("ir-officer")?.value || "").trim();
 
   const description = irFormalizeText(rawDescription);
-
-  const authBlock = `
-      <div class="mt-6 p-4 border border-gray-800 bg-black/20 rounded">
-          <h4 class="font-semibold text-xs tracking-wider text-gray-400 uppercase mb-2">Authenticated User</h4>
-          <p class="text-gray-300 text-sm">
-              <strong>Name:</strong> ${IR_USER.name}<br>
-              <strong>Email:</strong> ${IR_USER.email}<br>
-              <strong>Google ID:</strong> ${IR_USER.id}<br>
-              <strong>Login Time:</strong> ${IR_LOGIN_TIME.toLocaleString()}
-          </p>
-      </div>
-  `;
 
   let photosHTML = "";
   IR_PHOTOS.forEach((pObj, idx) => {
@@ -1328,16 +1215,9 @@ function irUpdatePreview() {
       `;
   });
 
-  const uidFrag = IR_USER.id.slice(-4);
-  const ts = Date.now().toString();
-  const random = Math.floor(Math.random() * 999999).toString();
-  const rawSig = uidFrag + "|" + ts + "|" + random;
-  IR_AUTH_SIG = btoa(rawSig).slice(0, 24);
-
   const watermarkHTML = `
       <div class="text-[9px] text-gray-500 opacity-70 text-right mt-4">
-          Verified Report • officeworkhelp.in<br>
-          AuthSig: ${IR_AUTH_SIG}
+          Verified Report • officeworkhelp.in
       </div>
   `;
 
@@ -1359,35 +1239,32 @@ function irUpdatePreview() {
 
       ${photosHTML}
 
-      ${authBlock}
       ${watermarkHTML}
 
       <p class="mt-6"><strong>Reporting Officer:</strong> ${officer || "-"}</p>
   `;
 }
 
-/* AUTOSAVE */
+/* AUTOSAVE (ANONYMOUS) */
 function irAutoSaveTrigger() {
   clearTimeout(irAutoSaveTimer);
   irAutoSaveTimer = setTimeout(irAutoSave, 2000);
 }
 
 async function irAutoSave() {
-  if (!IR_USER) return;
   if (!INCIDENT_SCRIPT_URL || INCIDENT_SCRIPT_URL.startsWith("REPLACE_WITH")) return;
 
-  const summary        = document.getElementById("ir-summary").value.trim();
-  const datetime       = document.getElementById("ir-datetime").value.trim();
-  const location       = document.getElementById("ir-location").value.trim();
-  const persons        = document.getElementById("ir-persons").value.trim();
-  const rawDescription = document.getElementById("ir-description-raw").value.trim();
-  const actions        = document.getElementById("ir-actions").value.trim();
-  const damage         = document.getElementById("ir-damage").value.trim();
-  const witness        = document.getElementById("ir-witness").value.trim();
-  const officer        = document.getElementById("ir-officer").value.trim();
+  const summary        = (document.getElementById("ir-summary")?.value || "").trim();
+  const datetime       = (document.getElementById("ir-datetime")?.value || "").trim();
+  const location       = (document.getElementById("ir-location")?.value || "").trim();
+  const persons        = (document.getElementById("ir-persons")?.value || "").trim();
+  const rawDescription = (document.getElementById("ir-description-raw")?.value || "").trim();
+  const actions        = (document.getElementById("ir-actions")?.value || "").trim();
+  const damage         = (document.getElementById("ir-damage")?.value || "").trim();
+  const witness        = (document.getElementById("ir-witness")?.value || "").trim();
+  const officer        = (document.getElementById("ir-officer")?.value || "").trim();
 
   const description = irFormalizeText(rawDescription);
-  const authSigToUse = IR_AUTH_SIG || "pending";
 
   const payload = {
       mode: "autosave",
@@ -1399,10 +1276,7 @@ async function irAutoSave() {
       actions,
       damage,
       witness,
-      officer,
-      userEmail: IR_USER.email,
-      userId: IR_USER.id,
-      authSig: authSigToUse
+      officer
   };
 
   const statusEl = document.getElementById("ir-save-status");
@@ -1423,50 +1297,20 @@ async function irAutoSave() {
 /* ============================================================
    INCIDENT REPORT — EXPORT
 ============================================================ */
-async function irSHA256(str) {
-  const enc = new TextEncoder().encode(str);
-  const buf = await crypto.subtle.digest("SHA-256", enc);
-  return Array.from(new Uint8Array(buf))
-      .map(b => b.toString(16).padStart(2, "0"))
-      .join("");
-}
-
 async function irBuildExportHTML() {
-  if (!IR_USER) return "";
-
-  const preview = document.getElementById("ir-preview").innerHTML;
-
-  const salt = Math.random().toString(36).substring(2, 12);
-  const ts = Date.now().toString();
-  const data = IR_USER.email + "|" + IR_USER.id + "|" + ts + "|" + salt;
-
-  const hash = await irSHA256(data);
-  IR_AUTH_SIG = hash.substring(0, 32);
-  const uidc = IR_USER.id.slice(-4);
-
-  const hiddenComment = `
-      <!-- AUTH_SIG:${IR_AUTH_SIG};UIDC:${uidc};TS:${ts};SALT:${salt} -->
-  `;
+  const preview = document.getElementById("ir-preview");
+  if (!preview) return "";
 
   return `
       <div style="font-family: Inter, sans-serif; color: #222; line-height: 1.5;">
-          ${preview}
-          <div style="font-size: 9px; text-align: right; opacity: .6; margin-top: 20px;">
-              Verified Report • officeworkhelp.in<br>
-              AuthSig: ${IR_AUTH_SIG}
-          </div>
+          ${preview.innerHTML}
       </div>
-      ${hiddenComment}
   `;
 }
 
 async function irExportPDF() {
-  if (!IR_USER) {
-      alert("Please sign in to generate a report.");
-      return;
-  }
-
   const html = await irBuildExportHTML();
+  if (!html) return;
 
   const container = document.createElement("div");
   container.innerHTML = html;
@@ -1484,12 +1328,8 @@ async function irExportPDF() {
 }
 
 async function irExportWord() {
-  if (!IR_USER) {
-      alert("Please sign in to generate a report.");
-      return;
-  }
-
   const html = await irBuildExportHTML();
+  if (!html) return;
 
   const header =
       `<!DOCTYPE html>
@@ -1668,13 +1508,13 @@ function irAdminOpenModal(index) {
       <div><strong>Damage / Injuries:</strong><br>${r.damage || "-"}</div>
       <div><strong>Witness Statements:</strong><br>${r.witness || "-"}</div>
       <div><strong>Officer:</strong> ${r.officer || "-"}</div>
-      <div><strong>User Email:</strong> ${r.userEmail}</div>
-      <div><strong>User ID:</strong> ${r.userId}</div>
+      <div><strong>User Email:</strong> ${r.userEmail || "-"}</div>
+      <div><strong>User ID:</strong> ${r.userId || "-"}</div>
       <div><strong>Auth Signature:</strong><br>
-          <span class="font-mono text-[10px]">${r.authSig}</span>
+          <span class="font-mono text-[10px]">${r.authSig || ""}</span>
       </div>
       <div class="mt-4 text-[10px] text-gray-500">
-          <em>Report Timestamp:</em> ${r.timestamp}
+          <em>Report Timestamp:</em> ${r.timestamp || ""}
       </div>
   `;
 
@@ -1709,7 +1549,6 @@ async function irAdminDeleteReport(index) {
           alert("Failed to delete: " + (data.error || "Unknown error"));
           return;
       }
-      // refetch list
       await irAdminFetchReports();
       alert("Report deleted.");
   } catch (err) {
@@ -1802,6 +1641,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Prepare admin login button early
   irAdminInitGoogleButton();
+
+  // Initialize incident preview once
+  irUpdatePreview();
 });
 </script>
 

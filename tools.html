@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tools – officeworkhelp.in</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+  <script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'sans-serif'] },
+        colors: { 'bubble-teal': '#3ef0e8' }
+      }
+    }
+  }
+  </script>
+
+  <style>
+    body { background:#020617; color:#e2e8f0; font-family:'Inter',sans-serif; }
+    .bubble{position:absolute;border-radius:50%;opacity:0.55;filter:blur(4px);animation:floatUp 18s infinite ease-in;}
+    @keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:0.3;}50%{opacity:0.65;}100%{transform:translateY(-150vh) scale(1.4);opacity:0;}}
+    .fade-in{animation:fadeIn 1.2s ease forwards;opacity:0;}
+    @keyframes fadeIn{to{opacity:1;}}
+    .nav-link{transition:color .2s;}
+    .nav-link:hover{color:#3ef0e8;}
+    .dropdown{position:relative;}
+    .dropdown-menu{position:absolute;top:2.6rem;right:0;background:#0f172a;border:1px solid #334155;border-radius:.5rem;padding:.5rem 0;width:220px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:50;}
+    .dropdown-item{padding:.6rem 1rem;font-size:.9rem;color:#94a3b8;transition:background .2s,color .2s;}
+    .dropdown-item:hover{background:#1e293b;color:#3ef0e8;cursor:pointer;}
+    .dropdown-menu.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+    @media(hover:hover){.dropdown:hover .dropdown-menu{opacity:1;transform:translateY(0);pointer-events:auto;}}
+  </style>
+</head>
+
+<body class="antialiased">
+
+<div id="bubble-container" class="fixed inset-0 overflow-hidden pointer-events-none -z-10"></div>
+
+<header class="sticky top-0 bg-gray-900/60 backdrop-blur-md border-b border-gray-700 z-50">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <a href="index.html" class="text-2xl font-black text-bubble-teal cursor-pointer">
+      officeworkhelp.in
+    </a>
+
+    <nav class="flex gap-8 items-center text-gray-300">
+      <a href="index.html" class="nav-link">Home</a>
+
+      <div class="dropdown">
+        <button id="toolsBtn" type="button" class="nav-link flex items-center gap-1">
+          Tools
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div id="toolsDropdown" class="dropdown-menu">
+          <a class="dropdown-item" href="tools.html">All Tools Overview</a>
+          <a class="dropdown-item" href="bulk-email.html">Bulk Email Sender</a>
+          <a class="dropdown-item" href="incident-report.html">Incident Report Formatter</a>
+          <a class="dropdown-item" href="admin.html">Incident Admin Dashboard</a>
+          <div class="dropdown-item opacity-50 cursor-not-allowed">
+            Data Sync Assistant (coming soon)
+          </div>
+        </div>
+      </div>
+
+      <a href="about.html" class="nav-link">About Me</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 pt-12">
+  <section class="fade-in min-h-[80vh] pt-6">
+    <p class="text-bubble-teal text-sm font-mono tracking-widest mb-2">FREE TOOL SUITE</p>
+    <h2 class="text-4xl font-bold mb-10">Select a Productivity Tool</h2>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+      <a href="bulk-email.html"
+         class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl cursor-pointer 
+                hover:border-bubble-teal transition hover:shadow-lg hover:shadow-bubble-teal/10 block">
+        <h3 class="text-2xl font-bold text-bubble-teal mb-2">Bulk Email Sender</h3>
+        <p class="text-gray-400 mb-4 text-sm">
+          Send personalized emails with attachments using an Excel performa.
+        </p>
+        <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
+      </a>
+
+      <a href="incident-report.html"
+         class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl cursor-pointer 
+                hover:border-bubble-teal transition hover:shadow-lg hover:shadow-bubble-teal/10 block">
+        <h3 class="text-2xl font-bold text-bubble-teal mb-2">Incident Report Formatter</h3>
+        <p class="text-gray-400 mb-4 text-sm">
+          Convert rough statements + photos into a formal incident report.
+        </p>
+        <span class="text-bubble-teal font-semibold text-sm">Use Tool →</span>
+      </a>
+
+      <div class="p-6 bg-gray-800/30 border border-gray-700/40 rounded-xl opacity-60">
+        <h3 class="text-2xl font-bold text-gray-500 mb-2">Data Sync Assistant</h3>
+        <p class="text-gray-600 text-sm">Coming soon…</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="mt-12 border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+  © 2025 officeworkhelp.in · Helping hard work meet smart work.
+</footer>
+
+<script>
+function spawnBubbles() {
+  const container = document.getElementById("bubble-container");
+  if (!container) return;
+  const bubbleCount = 14;
+  for (let i = 0; i < bubbleCount; i++) {
+    const b = document.createElement("div");
+    b.className = "bubble";
+    const size = 80 + Math.random() * 180;
+    const left = Math.random() * 100;
+    const delay = Math.random() * 15;
+    const duration = 16 + Math.random() * 12;
+    const hue = 170 + Math.random() * 40;
+    b.style.width = size + "px";
+    b.style.height = size + "px";
+    b.style.left = left + "vw";
+    b.style.bottom = "-260px";
+    b.style.background =
+      `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.7), hsla(${hue}, 80%, 30%, 0.1))`;
+    b.style.animationDuration = duration + "s";
+    b.style.animationDelay = delay + "s";
+    container.appendChild(b);
+  }
+}
+function setupDropdown() {
+  const toolsBtn = document.getElementById("toolsBtn");
+  const dropdown = document.getElementById("toolsDropdown");
+  if (!toolsBtn || !dropdown) return;
+  function closeDropdown(){ dropdown.classList.remove("show"); }
+  toolsBtn.addEventListener("click",(e)=>{e.stopPropagation();dropdown.classList.toggle("show");});
+  document.addEventListener("click",(e)=>{if(!dropdown.contains(e.target)&&!toolsBtn.contains(e.target)){closeDropdown();}});
+}
+document.addEventListener("DOMContentLoaded",()=>{spawnBubbles();setupDropdown();});
+</script>
+
+</body>
+</html>

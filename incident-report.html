@@ -30,12 +30,51 @@
     .bubble{position:absolute;border-radius:50%;opacity:.55;filter:blur(4px);animation:floatUp 18s infinite ease-in;}
     @keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:.3;}50%{opacity:.65;}100%{transform:translateY(-150vh) scale(1.4);opacity:0;}}
     .nav-link:hover{color:#3ef0e8;}
-    .dropdown{position:relative;}
-    .dropdown-menu{position:absolute;top:2.6rem;right:0;background:#0f172a;border:1px solid #334155;border-radius:.5rem;
-      padding:.5rem 0;width:220px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:.25s;z-index:50;}
-    .dropdown-item{padding:.6rem 1rem;font-size:.9rem;color:#94a3b8;}
-    .dropdown-item:hover{background:#1e293b;color:#3ef0e8;}
-    .dropdown-menu.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+    /* CLEAN FIX FOR DROPDOWN MENU */
+.dropdown {
+    position: relative;
+}
+
+/* Larger width + proper sizing */
+.dropdown-menu {
+    position: absolute;
+    top: 2.6rem;
+    right: 0;
+    background: #0f172a;
+    border: 1px solid #334155;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0;
+    width: 240px;              /* FIXED WIDTH */
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity .25s ease, transform .25s ease;
+    z-index: 9999;
+}
+
+/* Makes each item appear on its own line */
+.dropdown-item {
+    display: block;            /* FIX */
+    white-space: nowrap;       /* FIX */
+    padding: 0.6rem 1rem;
+    font-size: 0.95rem;
+    color: #94a3b8;
+    transition: background .2s, color .2s;
+}
+
+.dropdown-item:hover {
+    background: #1e293b;
+    color: #3ef0e8;
+}
+
+/* Show on hover */
+.dropdown-menu.show,
+.dropdown:hover .dropdown-menu {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
   </style>
 </head>
 

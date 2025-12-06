@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Email Sender – officeworkhelp.in</title>
+
+  <!-- GOOGLE LOGIN SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- XLSX PARSER -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+
+  <script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'sans-serif'] },
+        colors: { 'bubble-teal': '#3ef0e8' }
+      }
+    }
+  }
+  </script>
+
+  <style>
+    body{background:#020617;color:#e2e8f0;font-family:'Inter',sans-serif;}
+    .bubble{position:absolute;border-radius:50%;opacity:0.55;filter:blur(4px);animation:floatUp 18s infinite ease-in;}
+    @keyframes floatUp{0%{transform:translateY(0) scale(1);opacity:0.3;}50%{opacity:0.65;}100%{transform:translateY(-150vh) scale(1.4);opacity:0;}}
+    .fade-in{animation:fadeIn 1.2s ease forwards;opacity:0;}
+    @keyframes fadeIn{to{opacity:1;}}
+    .nav-link{transition:color .2s;}
+    .nav-link:hover{color:#3ef0e8;}
+    .dropdown{position:relative;}
+    .dropdown-menu{position:absolute;top:2.6rem;right:0;background:#0f172a;border:1px solid #334155;border-radius:.5rem;padding:.5rem 0;width:220px;opacity:0;transform:translateY(-8px);pointer-events:none;transition:opacity .25s ease,transform .25s ease;z-index:50;}
+    .dropdown-item{padding:.6rem 1rem;font-size:.9rem;color:#94a3b8;transition:background .2s,color .2s;}
+    .dropdown-item:hover{background:#1e293b;color:#3ef0e8;cursor:pointer;}
+    .dropdown-menu.show{opacity:1;transform:translateY(0);pointer-events:auto;}
+    @media(hover:hover){.dropdown:hover .dropdown-menu{opacity:1;transform:translateY(0);pointer-events:auto;}}
+  </style>
+</head>
+<body class="antialiased">
+
+<div id="bubble-container" class="fixed inset-0 overflow-hidden pointer-events-none -z-10"></div>
+
+<header class="sticky top-0 bg-gray-900/60 backdrop-blur-md border-b border-gray-700 z-50">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <a href="index.html" class="text-2xl font-black text-bubble-teal cursor-pointer">
+      officeworkhelp.in
+    </a>
+    <nav class="flex gap-8 items-center text-gray-300">
+      <a href="index.html" class="nav-link">Home</a>
+
+      <div class="dropdown">
+        <button id="toolsBtn" type="button" class="nav-link flex items-center gap-1">
+          Tools
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div id="toolsDropdown" class="dropdown-menu">
+          <a class="dropdown-item" href="tools.html">All Tools Overview</a>
+          <a class="dropdown-item" href="bulk-email.html">Bulk Email Sender</a>
+          <a class="dropdown-item" href="incident-report.html">Incident Report Formatter</a>
+          <a class="dropdown-item" href="admin.html">Incident Admin Dashboard</a>
+          <div class="dropdown-item opacity-50 cursor-not-allowed">
+            Data Sync Assistant (coming soon)
+          </div>
+        </div>
+      </div>
+
+      <a href="about.html" class="nav-link">About Me</a>
+    </nav>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-6 pt-12">
+
+<section class="fade-in min-h-[80vh]">
+  <div class="mb-10">
+    <p class="text-gray-400 text-sm mb-1">
+      <a href="tools.html" class="hover:text-bubble-teal cursor-pointer">Tools</a>
+      / Bulk Email Sender with Attachments
+    </p>
+    <h2 class="text-4xl font-extrabold text-bubble-teal">Bulk Email Sender with Attachments</h2>
+    <p class="text-gray-400 max-w-3xl mt-2">
+      Use an Excel performa to map each recipient to their email address and attachment file name.
+    </p>
+  </div>
+
+  <div class="space-y-8">
+
+    <!-- 1. SIGN IN WITH GOOGLE -->
+    <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+      <h3 class="text-xl font-bold text-bubble-teal mb-3">1. Sign in with Google</h3>
+      <p class="text-gray-400 text-sm mb-3">
+        Authorize this tool to send emails and fetch attachments from your Drive.
+      </p>
+
+      <div id="g_id_signin"></div>
+      <div id="loginStatus" class="text-sm text-gray-400 mt-2"></div>
+    </div>
+
+    <!-- 2. PERFORMA + ATTACHMENTS -->
+    <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+      <h3 class="text-xl font-bold text-bubble-teal mb-3">2. Upload Performa & Attachments</h3>
+
+      <button onclick="downloadPerforma()"
+              class="mb-4 px-4 py-2 rounded-lg bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
+                     hover:bg-bubble-teal hover:text-black transition">
+        Download Template Performa (.xlsx)
+      </button>
+
+      <label class="block font-semibold text-gray-300 mb-1">Upload Performa (.xlsx):</label>
+      <input type="file" id="fileInput" accept=".xlsx" class="mb-2" />
+
+      <div id="dropZone"
+           class="border-2 border-dashed border-gray-600 p-4 rounded-lg text-center">
+        Drag & drop Performa here
+      </div>
+
+      <div id="fileInfo" class="text-gray-400 text-sm mt-2"></div>
+      <div id="tableContainer" class="mt-4"></div>
+
+      <hr class="my-6 border-gray-700">
+
+      <label class="block font-semibold text-gray-300 mb-1">Upload Attachments:</label>
+      <input type="file" id="attachmentInput" multiple class="mb-2" />
+
+      <div id="attachmentDropZone"
+           class="border-2 border-dashed border-gray-600 p-4 rounded-lg text-center">
+        Drag & drop attachments here
+      </div>
+
+      <div id="attachmentUploadStatus" class="text-gray-400 text-sm mt-2"></div>
+    </div>
+
+    <!-- 3. EMAIL CONTENT -->
+    <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+      <h3 class="text-xl font-bold text-bubble-teal mb-3">3. Email Content</h3>
+
+      <label class="font-semibold text-gray-300">Subject:</label>
+      <input id="subject" type="text" value="Your Document"
+             class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg mb-5" />
+
+      <label class="font-semibold text-gray-300">Message (HTML allowed):</label>
+      <textarea id="editor" rows="6"
+                class="w-full mt-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg font-mono text-sm">
+<p>Dear {{Name}},</p>
+<p>Your document is attached below.</p>
+<p>Regards,<br>Office</p>
+      </textarea>
+    </div>
+
+    <!-- 4. SEND EMAILS -->
+    <div class="p-6 bg-gray-800/50 border border-gray-700 rounded-xl">
+      <h3 class="text-xl font-bold text-bubble-teal mb-3">4. Send Emails</h3>
+
+      <div id="quotaBar" class="text-sm text-gray-300 mb-3">
+        Daily Usage: <span id="quotaCount">0</span> / <span id="quotaLimit">100</span>
+      </div>
+
+      <button id="sendBtn" disabled onclick="startBulkSend()"
+              class="px-6 py-3 rounded-xl bg-bubble-teal/20 text-bubble-teal border border-bubble-teal 
+                     hover:bg-bubble-teal hover:text-black transition font-semibold">
+        Start Sending Emails
+      </button>
+
+      <div id="progress" class="text-bubble-teal font-semibold mt-4"></div>
+      <div id="eta" class="text-gray-400 text-sm mt-1"></div>
+      <div id="log" class="text-gray-500 text-sm font-mono mt-2"></div>
+
+      <button id="failedBtn" onclick="downloadFailed()"
+              class="hidden mt-4 px-4 py-2 bg-red-600 text-white rounded-lg">
+        Download Failed Rows (CSV)
+      </button>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="mt-12 border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+  © 2025 officeworkhelp.in · Helping hard work meet smart work.
+</footer>
+
+<audio id="successSound">
+  <source src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg" type="audio/ogg">
+</audio>
+
+<script>
+const BULK_EMAIL_CLIENT_ID  = "863520838078-6buld4pv7anes58hloh473dms687gti1.apps.googleusercontent.com";
+const SCRIPT_WEBAPP_URL   = "https://script.google.com/macros/s/AKfycbwIkB5esWB5CNoENAF1QmIv5pB5RIY_JSS2XDQg16f9HeDC2U5Q7Y7j7UXAcCBYU6CnaQ/exec";
+
+let accessToken = null;
+let sheetRows = [];
+let failedRows = [];
+let sending = false;
+
+const DAILY_LIMIT = 100;
+const QUOTA_DAY_KEY = "owh_quota_day";
+const QUOTA_COUNT_KEY = "owh_quota_count";
+
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+function loadQuota() {
+  const today = getTodayKey();
+  const storedDay = localStorage.getItem(QUOTA_DAY_KEY);
+  let count = Number(localStorage.getItem(QUOTA_COUNT_KEY) || 0);
+  if (storedDay !== today) {
+    count = 0;
+    localStorage.setItem(QUOTA_DAY_KEY, today);
+    localStorage.setItem(QUOTA_COUNT_KEY, "0");
+  }
+  return count;
+}
+function saveQuota(count) {
+  localStorage.setItem(QUOTA_COUNT_KEY, String(count));
+}
+function quotaExceeded() {
+  return loadQuota() >= DAILY_LIMIT;
+}
+function incrementQuota() {
+  let count = loadQuota();
+  count++;
+  saveQuota(count);
+  updateQuotaDisplay();
+}
+function updateQuotaDisplay() {
+  const used = loadQuota();
+  const countEl = document.getElementById("quotaCount");
+  const limitEl = document.getElementById("quotaLimit");
+  if (countEl) countEl.innerText = used;
+  if (limitEl) limitEl.innerText = DAILY_LIMIT;
+}
+
+let bulkTokenClient = null;
+
+function initGoogleButton() {
+  const container = document.getElementById("g_id_signin");
+  if (!container) return;
+  if (container.getAttribute("data-rendered") === "true") return;
+  if (!window.google || !google.accounts || !google.accounts.id) return;
+
+  google.accounts.id.initialize({
+    client_id: BULK_EMAIL_CLIENT_ID,
+    callback: handleBulkIdCredential
+  });
+
+  google.accounts.id.renderButton(container, {
+    theme: "outline",
+    size: "large"
+  });
+
+  container.setAttribute("data-rendered", "true");
+}
+
+function handleBulkIdCredential() {
+  const status = document.getElementById("loginStatus");
+  if (status) status.innerText = "Requesting permissions…";
+
+  if (!google.accounts || !google.accounts.oauth2) {
+    if (status) status.innerText = "Google OAuth library not ready.";
+    return;
+  }
+
+  if (!bulkTokenClient) {
+    bulkTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: BULK_EMAIL_CLIENT_ID,
+      scope: "https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/drive.readonly",
+      callback: (t) => {
+        accessToken = t.access_token;
+        if (status) status.innerText = "Login successful. Ready to send.";
+        updateSendButton();
+      }
+    });
+  }
+
+  bulkTokenClient.requestAccessToken();
+}
+
+function downloadPerforma() {
+  const url =
+    "https://docs.google.com/spreadsheets/d/1RLPZlir1TrV-pVE5qj8OKCBsAZWpcddUlwKvkGG56EY/export?format=xlsx";
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Performa.xlsx";
+  a.click();
+}
+
+function setupPerformaDrag() {
+  const dz = document.getElementById("dropZone");
+  const fileInput = document.getElementById("fileInput");
+  if (!dz || !fileInput) return;
+
+  const newDz = dz.cloneNode(true);
+  dz.parentNode.replaceChild(newDz, dz);
+
+  const newFileInput = fileInput.cloneNode(true);
+  fileInput.parentNode.replaceChild(newFileInput, fileInput);
+
+  newDz.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
+  });
+  newDz.addEventListener("dragleave", () => {
+    newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+  });
+  newDz.addEventListener("drop", (e) => {
+    e.preventDefault();
+    newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handlePerformaFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  newFileInput.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handlePerformaFile(e.target.files[0]);
+    }
+  });
+}
+
+function handlePerformaFile(file) {
+  const info = document.getElementById("fileInfo");
+  if (!file || !file.name.endsWith(".xlsx")) {
+    if (info) info.innerText = "Please select a valid .xlsx file.";
+    return;
+  }
+  if (info) info.innerText = "Loaded: " + file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const workbook = XLSX.read(new Uint8Array(e.target.result), { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+      if (json.length < 2) {
+        if (info) info.innerText = "File has a header but no data rows.";
+        sheetRows = [];
+        renderTable([], []);
+        updateSendButton();
+        return;
+      }
+
+      const header = ["Name", "Email", "Attachment Name"];
+      const idx = { name: 0, email: 1, attach: 2 };
+
+      sheetRows = json.slice(1)
+        .map(row => ({
+          name: row[idx.name] || "",
+          email: row[idx.email] || "",
+          attachmentName: row[idx.attach] || ""
+        }))
+        .filter(r => r.email);
+
+      renderTable(header, sheetRows.map(r => [r.name, r.email, r.attachmentName]));
+      updateSendButton();
+    } catch (err) {
+      console.error("Performa parse error:", err);
+      if (info) info.innerText = "Error processing file. Please check console.";
+      sheetRows = [];
+      renderTable([], []);
+      updateSendButton();
+    }
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+function renderTable(header, rows) {
+  const container = document.getElementById("tableContainer");
+  if (!container) return;
+
+  if (!rows.length) {
+    container.innerHTML = '<p class="text-gray-500 text-sm mt-2">No valid rows detected.</p>';
+    return;
+  }
+
+  let html = `<p class="text-gray-400 text-sm mb-2">Previewing first 10 of ${rows.length} rows:</p>`;
+  html += '<div class="overflow-x-auto">';
+  html += '<table class="w-full text-sm border border-gray-700 rounded-lg overflow-hidden">';
+  html += '<thead class="bg-gray-900"><tr>';
+  header.forEach(h => {
+    html += `<th class="px-3 py-2 text-left border-b border-gray-700 text-bubble-teal">${h}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  rows.slice(0, 10).forEach(r => {
+    html += '<tr class="border-b border-gray-800 hover:bg-gray-900/60">';
+    html += `<td class="px-3 py-2">${r[0] || ""}</td>`;
+    html += `<td class="px-3 py-2">${r[1] || ""}</td>`;
+    html += `<td class="px-3 py-2">${r[2] || ""}</td>`;
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+function setupAttachmentDragDrop() {
+  const dz = document.getElementById("attachmentDropZone");
+  const attachmentInput = document.getElementById("attachmentInput");
+  if (!dz || !attachmentInput) return;
+
+  const newDz = dz.cloneNode(true);
+  dz.parentNode.replaceChild(newDz, dz);
+
+  const newInput = attachmentInput.cloneNode(true);
+  attachmentInput.parentNode.replaceChild(newInput, attachmentInput);
+
+  newDz.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    newDz.classList.add("border-bubble-teal", "bg-gray-900/40");
+  });
+  newDz.addEventListener("dragleave", () => {
+    newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+  });
+  newDz.addEventListener("drop", (e) => {
+    e.preventDefault();
+    newDz.classList.remove("border-bubble-teal", "bg-gray-900/40");
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      uploadAttachments(e.dataTransfer.files);
+    }
+  });
+
+  newInput.addEventListener("change", (e) => {
+    if (e.target.files && e.target.files.length) {
+      uploadAttachments(e.target.files);
+    }
+  });
+}
+
+async function uploadAttachments(filesList) {
+  const status = document.getElementById("attachmentUploadStatus");
+  const files = Array.from(filesList || []);
+  if (!files.length) {
+    if (status) status.innerText = "No files selected.";
+    return;
+  }
+
+  if (status) status.innerText = `Uploading ${files.length} file(s)…`;
+
+  const formData = new FormData();
+  formData.append("mode", "uploadAttachments");
+  files.forEach(f => formData.append("files", f, f.name));
+
+  try {
+    const res = await fetch(SCRIPT_WEBAPP_URL, {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    if (Array.isArray(data)) {
+      if (status) status.innerText = `Uploaded ${data.length} file(s) successfully.`;
+    } else if (data && typeof data === "object" && data.success === false) {
+      if (status) status.innerText = `Upload failed: ${data.error || "Server error."}`;
+    } else {
+      if (status) status.innerText = "Upload completed.";
+    }
+  } catch (err) {
+    console.error("Attachment upload error:", err);
+    if (status) status.innerText = "Upload failed. See console.";
+  }
+}
+
+function updateSendButton() {
+  const sendBtn = document.getElementById("sendBtn");
+  if (!sendBtn) return;
+
+  const subject = document.getElementById("subject")?.value.trim();
+  const msg = document.getElementById("editor")?.value.trim();
+
+  const ok = accessToken &&
+    sheetRows.length > 0 &&
+    subject &&
+    msg &&
+    !sending &&
+    !quotaExceeded();
+
+  sendBtn.disabled = !ok;
+
+  if (quotaExceeded()) {
+    sendBtn.textContent = "Daily Limit Reached";
+    sendBtn.classList.add("opacity-60", "cursor-not-allowed");
+  } else {
+    sendBtn.textContent = "Start Sending Emails";
+    if (ok) {
+      sendBtn.classList.remove("opacity-60", "cursor-not-allowed");
+    } else {
+      sendBtn.classList.add("opacity-60", "cursor-not-allowed");
+    }
+  }
+}
+
+async function startBulkSend() {
+  if (!sheetRows.length) return;
+  sending = true;
+  updateSendButton();
+
+  const failedBtn = document.getElementById("failedBtn");
+  if (failedBtn) failedBtn.classList.add("hidden");
+
+  const subject = document.getElementById("subject").value.trim();
+  const msg = document.getElementById("editor").value.trim();
+
+  const total = sheetRows.length;
+  failedRows = [];
+  const startTime = Date.now();
+
+  for (let i = 0; i < total; i++) {
+    const row = sheetRows[i];
+    const htmlBody = msg.replace(/{{Name}}/g, row.name || "Sir/Madam");
+
+    const progressEl = document.getElementById("progress");
+    const logEl = document.getElementById("log");
+    const etaEl = document.getElementById("eta");
+
+    if (progressEl) progressEl.innerText = `Sending ${i + 1}/${total}…`;
+    if (logEl) logEl.innerText = `Current: ${row.email}`;
+
+    const ok = await sendOne(row, subject, htmlBody);
+    if (!ok) {
+      failedRows.push(row);
+    } else {
+      incrementQuota();
+    }
+
+    const elapsed = (Date.now() - startTime) / 1000;
+    const avg = elapsed / (i + 1);
+    const remaining = Math.round(avg * (total - (i + 1)));
+    if (etaEl) etaEl.innerText = `Estimated time left: ${remaining}s`;
+
+    await new Promise(res => setTimeout(res, 300));
+  }
+
+  sending = false;
+  updateSendButton();
+
+  const progressEl = document.getElementById("progress");
+  const logEl = document.getElementById("log");
+  const etaEl = document.getElementById("eta");
+
+  if (!failedRows.length) {
+    if (progressEl) progressEl.innerText = "All emails sent successfully ✅";
+    const sound = document.getElementById("successSound");
+    if (sound) sound.play().catch(() => {});
+  } else {
+    if (progressEl) {
+      progressEl.innerText =
+        `${total - failedRows.length}/${total} sent successfully, ${failedRows.length} failed.`;
+    }
+    if (failedBtn) failedBtn.classList.remove("hidden");
+  }
+
+  if (logEl) logEl.innerText = "Done.";
+  if (etaEl) etaEl.innerText = "";
+}
+
+async function sendOne(row, subject, htmlBody) {
+  try {
+    const res = await fetch(SCRIPT_WEBAPP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "sendEmailWithAttachmentName",
+        to: row.email,
+        subject,
+        htmlBody,
+        attachmentName: row.attachmentName,
+        accessToken
+      })
+    });
+    const data = await res.json();
+    return !!data.success;
+  } catch (err) {
+    console.error("Send error for", row.email, err);
+    return false;
+  }
+}
+
+function downloadFailed() {
+  if (!failedRows.length) return;
+
+  let csv = "Name,Email,Attachment Name\n";
+  failedRows.forEach(r => {
+    csv += `"${r.name}","${r.email}","${r.attachmentName}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "failed_rows.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Shared visuals */
+function spawnBubbles() {
+  const container = document.getElementById("bubble-container");
+  if (!container) return;
+  const bubbleCount = 14;
+  for (let i = 0; i < bubbleCount; i++) {
+    const b = document.createElement("div");
+    b.className = "bubble";
+    const size = 80 + Math.random() * 180;
+    const left = Math.random() * 100;
+    const delay = Math.random() * 15;
+    const duration = 16 + Math.random() * 12;
+    const hue = 170 + Math.random() * 40;
+    b.style.width = size + "px";
+    b.style.height = size + "px";
+    b.style.left = left + "vw";
+    b.style.bottom = "-260px";
+    b.style.background =
+      `radial-gradient(circle at 30% 25%, rgba(255,255,255,0.7), hsla(${hue},80%,30%,0.1))`;
+    b.style.animationDuration = duration + "s";
+    b.style.animationDelay = delay + "s";
+    container.appendChild(b);
+  }
+}
+function setupDropdown() {
+  const toolsBtn = document.getElementById("toolsBtn");
+  const dropdown = document.getElementById("toolsDropdown");
+  if (!toolsBtn || !dropdown) return;
+  function closeDropdown(){ dropdown.classList.remove("show"); }
+  toolsBtn.addEventListener("click",(e)=>{e.stopPropagation();dropdown.classList.toggle("show");});
+  document.addEventListener("click",(e)=>{if(!dropdown.contains(e.target)&&!toolsBtn.contains(e.target)){closeDropdown();}});
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  spawnBubbles();
+  setupDropdown();
+  setupPerformaDrag();
+  setupAttachmentDragDrop();
+  updateQuotaDisplay();
+
+  document.addEventListener("input", (e) => {
+    if (e.target.id === "subject" || e.target.id === "editor") {
+      updateSendButton();
+    }
+  });
+});
+
+window.addEventListener("load", () => {
+  initGoogleButton();
+});
+</script>
+
+</body>
+</html>
